@@ -1,0 +1,211 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-drawer-panel/paper-drawer-panel.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../css/shared-styles.html">
+<dom-module id="lesson-download-editor">
+  <template>
+    <style include="shared-styles">
+
+      ul {
+        width: 95%;
+        list-style-type: circle;
+      }
+
+      .heading {
+        padding: 10px 15px;
+        margin-top: 20px;
+        background-color: #f3f3f3;
+        border: 1px solid #dedede;
+        border-top-left-radius: 5px;
+        border-top-right-radius: 5px;
+        font-size: 18px;
+        cursor: pointer;
+        /*-webkit-tap-highlight-color: rgba(0,0,0,0);*/
+        width: 100%;
+        text-align: left;
+      }
+
+      .collapse-content {
+        width: 100%;
+        padding-top: 15px;
+        /*border: 1px solid #dedede;*/
+      }
+
+      iron-collapse:focus {
+        outline-width: 0;
+      }
+    </style>
+    <div class="image">
+      <!-- <img src="london.jpg"> -->
+      <a href="{{thepath}}">
+        <paper-button>{{thecopy}}</paper-button>
+      </a>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'lesson-download-editor',
+
+      /*********************************************************************************************************************/
+      /*                                       PROPERTIES, LISTENERS, AND OBSERVERS                                        */
+      /*********************************************************************************************************************/
+
+
+      /*********************************************************************************************************************/
+      /*                                                 POLYMER CALLBACKS                                                 */
+      /*********************************************************************************************************************/
+
+
+      /*********************************************************************************************************************/
+      /*                                             PROPERTY CHANGED LISTENERS                                            */
+      /*********************************************************************************************************************/
+
+
+      /*********************************************************************************************************************/
+      /*                                              ID ASSIGNMENT FUNCTIONS                                              */
+      /*********************************************************************************************************************/
+
+
+      /*********************************************************************************************************************/
+      /*                                               INTERACTIVE FUNCTIONS                                               */
+      /*********************************************************************************************************************/
+      // These functions change elements on the page, such as updating text.
+
+
+      /*********************************************************************************************************************/
+      /*                                                  MISC FUNCTIONS                                                   */
+      /*********************************************************************************************************************/
+
+
+      /*********************************************************************************************************************/
+      /*                                           POSSIBLY DEPRECATED FUNCTIONS                                           */
+      /*********************************************************************************************************************/
+
+
+      created: function () {
+        //console.log(this.localName + '#' + this.id + ' was created');
+      },
+
+      ready: function () {
+        // console.log(this.localName + '#' + this.id + ' has local DOM initialized');
+      },
+
+      attached: function () {
+        //console.log(this.localName + '#' + this.id + ' was attached');
+      },
+
+      detached: function () {
+        //console.log(this.localName + '#' + this.id + ' was detached');
+      },
+
+      attributeChanged: function (name, type) {
+        //console.log(this.localName + '#' + this.id + ' attribute ' + name +
+        // ' was changed to ' + this.getAttribute(name));
+      },
+      properties: {
+        thepath: {
+          type: String,
+          value: ""
+        },
+        thecopy: {
+          type: String,
+          value: ""
+        }
+      },
+      handleOutboundLinkClicks: function (e) {
+        ga('send', 'event', {
+          eventCategory: 'Outbound Link',
+          eventAction: 'click',
+          eventLabel: event.target.href,
+          transport: 'beacon'
+        });
+      },
+      toggle: function (e) {
+        collapsegroup = e.target.attributes['targetgroup'].value;
+        //console.log(collapsegroup);
+        this.$[collapsegroup].toggle();
+      }
+    });
+  </script>
+
+  <script>
+    // 2. This code loads the IFrame Player API code asynchronously.
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    // 3. This function creates an <iframe> (and YouTube player)
+    //    after the API code downloads.
+    var player;
+    function onYouTubeIframeAPIReady() {
+      if (window.screen.availWidth < 800) {
+        player = new YT.Player('player', {
+          width: window.screen.availWidth - 40,
+          videoId: '0hJ5RiB7Ez8',
+          events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange
+          }
+        });
+      } else {
+        player = new YT.Player('player', {
+          height: window.innerWidth * 0.6 * 9 / 16,
+          width: window.innerWidth * 0.6,
+          videoId: '0hJ5RiB7Ez8',
+          events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange
+          }
+        });
+      }
+    }
+    // 4. The API will call this function when the video player is ready.
+    function onPlayerReady(event) {
+      event.target.playVideo();
+    }
+    // 5. The API calls this function when the player's state changes.
+    //    The function indicates that when playing a video (state=1),
+    //    the player should play for six seconds and then stop.
+    var done = false;
+    function onPlayerStateChange(event) {
+      if (event.data == YT.PlayerState.PLAYING && !done) {
+        setTimeout(stopVideo, 6000);
+        done = true;
+      }
+    }
+    function stopVideo() {
+      player.stopVideo();
+    }
+    var pauseFlag = false;
+    function onPlayerReady(event) {
+      //console.log("player ready");
+      // do nothing, no tracking needed
+    }
+    function onPlayerStateChange(event) {
+      // track when user clicks to Play
+      //console.log(event.data);
+      if (event.data == YT.PlayerState.PLAYING) {
+        ga('send', 'event', 'Videos', 'play', 'Basic Install Tutorial 0hJ5RiB7Ez8');
+        pauseFlag = true;
+      }
+      // track when user clicks to Pause
+      if (event.data == YT.PlayerState.PAUSED && pauseFlag) {
+        ga('send', 'event', 'Videos', 'pause', 'Basic Install Tutorial 0hJ5RiB7Ez8');
+        pauseFlag = false;
+      }
+      // track when video ends
+      if (event.data == YT.PlayerState.ENDED) {
+        ga('send', 'event', 'Videos', 'finished', 'Basic Install Tutorial 0hJ5RiB7Ez8');
+      }
+    }
+  </script>
+</dom-module>

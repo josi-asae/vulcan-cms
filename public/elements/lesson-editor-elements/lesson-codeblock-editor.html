@@ -1,0 +1,160 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-input/paper-textarea.html">
+<link rel="import" href="../../elements/jal-prism-element/prism-highlighter.html">
+<link rel="import" href="../../elements/jal-prism-element/prism-theme-default.html">
+<link rel="import" href="../../css/shared-styles.html">
+<dom-module id="lesson-codeblock-editor">
+    <template>
+    <style include="shared-styles prism-theme-default">
+      pre {
+        background: var(--codeblock-background-color);
+        color: var(--codeblock-text-color);
+        overflow-x: scroll;
+        padding: 10px;
+        border-radius: .5em;
+      }
+
+
+      #editorelement {
+          @apply(--standard-margin);
+          /*padding-left: 20px;*/
+          /*padding-right: 20px;*/
+      }
+
+      .codeblock {
+        --paper-input-container: {
+        background-color: var(--jal-grey-heavy);
+        padding: 10px;
+      }
+      --paper-input-container-input:{
+        color: var(--jal-white);
+        }
+        --paper-input-container-color: var(--jal-white);
+      }
+    </style>
+    <div id="editorelement">
+    <prism-highlighter></prism-highlighter>
+    <paper-textarea id$="{{theid}}" value="{{code}}" label="Codeblock Text" class="editorpiece codeblock"></paper-textarea>
+  </div>
+  </template>
+    <script>
+        Polymer({
+            is: 'lesson-codeblock-editor',
+
+            /*********************************************************************************************************************/
+            /*                                       PROPERTIES, LISTENERS, AND OBSERVERS                                        */
+            /*********************************************************************************************************************/
+
+            properties: {
+                lang: {
+                    type: String,
+                    value: ""
+                },
+                code: {
+                    type: String
+                },
+                theid: {
+                    type: Object
+                }
+            },
+
+            listeners: {
+                'change': '_textChanged'
+            },
+
+            /*********************************************************************************************************************/
+            /*                                                 POLYMER CALLBACKS                                                 */
+            /*********************************************************************************************************************/
+
+
+            created: function() {
+                //console.log(this.localName + '#' + this.id + ' was created');
+            },
+
+            ready: function() {
+                //console.log(this.localName + '#' + this.id + ' has local DOM initialized');
+            },
+
+            attached: function() {
+                //console.log(this.localName + '#' + this.id + ' was attached');
+                // this._render();
+            },
+
+            detached: function() {
+                //console.log(this.localName + '#' + this.id + ' was detached');
+            },
+
+            /*********************************************************************************************************************/
+            /*                                             PROPERTY CHANGED LISTENERS                                            */
+            /*********************************************************************************************************************/
+
+            _textChanged: function(e) {
+                el = e.srcElement;
+                newNode = this.findParentID(el, "PAPER-TEXTAREA");
+                this.fire('updatecodeblock', {
+                    'id': newNode.id,
+                    'copy': newNode.value
+                })
+            },
+
+            attributeChanged: function(name, type) {
+                //console.log(this.localName + '#' + this.id + ' attribute ' + name +
+                // ' was changed to ' + this.getAttribute(name));
+            },
+
+            /*********************************************************************************************************************/
+            /*                                              ID ASSIGNMENT FUNCTIONS                                              */
+            /*********************************************************************************************************************/
+
+
+            /*********************************************************************************************************************/
+            /*                                               INTERACTIVE FUNCTIONS                                               */
+            /*********************************************************************************************************************/
+            // These functions change elements on the page, such as updating text.
+
+
+            /*********************************************************************************************************************/
+            /*                                                  MISC FUNCTIONS                                                   */
+            /*********************************************************************************************************************/
+
+            findParentID: function(el, tag) {
+
+                while (el.parentNode) {
+                    el = el.parentNode;
+                    if (el.tagName == tag)
+                        return el;
+                }
+                return null;
+            },
+
+            /*********************************************************************************************************************/
+            /*                                           POSSIBLY DEPRECATED FUNCTIONS                                           */
+            /*********************************************************************************************************************/
+
+            handleOutboundLinkClicks: function(e) {
+                ga('send', 'event', {
+                    eventCategory: 'Outbound Link',
+                    eventAction: 'click',
+                    eventLabel: event.target.href,
+                    transport: 'beacon'
+                });
+            },
+            toggle: function(e) {
+                collapsegroup = e.target.attributes['targetgroup'].value;
+                //console.log(collapsegroup);
+                this.$[collapsegroup].toggle();
+            }
+        });
+    </script>
+
+</dom-module>

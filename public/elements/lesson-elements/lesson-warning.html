@@ -1,0 +1,92 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-drawer-panel/paper-drawer-panel.html">
+<link rel="import" href="../../css/shared-styles.html">
+<dom-module id="lesson-warning">
+  <template>
+    <style include="shared-styles">
+    .text {
+        background-color: var(--warning-primary-color);
+        padding: 20px 10px;
+        border-style: solid;
+        border-width: 0 0 0 10px;
+        border-color: var(--warning-accent-color);
+        margin-bottom: 10px;
+    }
+    </style>
+    <div class="text" id="textelement">
+      <h4>{{thetitle}}</h4>
+      <!-- <p>{{thecopy}}</p> -->
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'lesson-warning',
+
+      created: function () {
+        //console.log(this.localName + '#' + this.id + ' was created');
+      },
+
+      ready: function () {
+        //console.log(this.localName + '#' + this.id + ' has local DOM initialized');
+      },
+
+      attached: function () {
+
+        var j;
+        var para = document.createElement("P");
+        for (j = 0; j < this.thecontent.length; j++) {
+          var assetContent = this.thecontent[j];
+          if (assetContent.type == "copy") {
+            var t = document.createTextNode(assetContent.copy);
+            para.appendChild(t);
+          } else if (assetContent.type == "link") {
+            var a = document.createElement("a");
+            a.setAttribute('href', assetContent.link.url);
+            a.innerHTML = assetContent.link.copy;
+            a.target = "_";
+            para.appendChild(a);
+          }
+        }
+
+        this.$.textelement.appendChild(para);
+      },
+
+      detached: function () {
+      },
+
+      attributeChanged: function (name, type) {
+      },
+      properties: {
+        thetitle: {
+          type: String,
+          value: ""
+        },
+        thecontent: {
+          type: Object
+        }
+      },
+      handleOutboundLinkClicks: function (e) {
+        ga('send', 'event', {
+          eventCategory: 'Outbound Link',
+          eventAction: 'click',
+          eventLabel: event.target.href,
+          transport: 'beacon'
+        });
+      },
+      toggle: function (e) {
+        collapsegroup = e.target.attributes['targetgroup'].value;
+        this.$[collapsegroup].toggle();
+      }
+    });
+  </script>
+
+</dom-module>

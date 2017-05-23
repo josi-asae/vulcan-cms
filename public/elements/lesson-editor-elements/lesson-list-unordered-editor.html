@@ -1,0 +1,152 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-input/paper-textarea.html">
+<link rel="import" href="../../css/shared-styles.html">
+<dom-module id="lesson-list-unordered-editor">
+    <template>
+        <style include="shared-styles">
+
+            div, ol, ul, li {
+                color: var(--primary-text-color);
+            }
+
+            li {
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+
+            #editorelement {
+                @apply(--standard-margin);
+                /*padding-left: 20px;*/
+                /*padding-right: 20px;*/
+            }
+            .editorpiece {
+                @apply(--standard-margin);
+                /*padding-left: 20px;*/
+                /*padding-right: 20px;*/
+            }
+
+            .horiz {
+                @apply(--layout-horizontal);
+            }
+
+            paper-textarea {
+                width: 90%;
+            }
+        </style>
+        <div id="editorelement">
+            <paper-button on-tap="_addPointToAsset" class="editorpiece">Add Point</paper-button>
+            <ul class="editorpiece">
+                <template is="dom-repeat" items="{{points}}">
+                    <li class="horiz">
+                        <paper-textarea label="Unordered List Item" id$="{{item.id}}"
+                                        value="{{item.copy}}"></paper-textarea>
+                        <paper-fab mini icon="clear" id$="{{item.id}}" on-tap="_deleteText"></paper-fab>
+                    </li>
+                </template>
+    </ul>
+    </div>
+    </template>
+    <script>
+        Polymer({
+            is: 'lesson-list-unordered-editor',
+
+            /*********************************************************************************************************************/
+            /*                                       PROPERTIES, LISTENERS, AND OBSERVERS                                        */
+            /*********************************************************************************************************************/
+
+            properties: {
+                points: {
+                    type: Object
+                }
+            },
+
+            listeners: {
+                'change': '_textChanged'
+            },
+
+            /*********************************************************************************************************************/
+            /*                                                 POLYMER CALLBACKS                                                 */
+            /*********************************************************************************************************************/
+
+
+            /*********************************************************************************************************************/
+            /*                                             PROPERTY CHANGED LISTENERS                                            */
+            /*********************************************************************************************************************/
+
+            _textChanged: function(e) {
+                el = e.srcElement;
+                newNode = this.findParentID(el, "PAPER-TEXTAREA");
+                this.fire('updatelistunordered', {
+                    'id': newNode.id,
+                    'copy': newNode.value
+                })
+            },
+
+            /*********************************************************************************************************************/
+            /*                                              ID ASSIGNMENT FUNCTIONS                                              */
+            /*********************************************************************************************************************/
+
+            /*********************************************************************************************************************/
+            /*                                            FUNCTIONS FOR FIRING EVENTS                                            */
+            /*********************************************************************************************************************/
+
+            _addPointToAsset: function(e) {
+                this.fire('addpointtoasset', e);
+            },
+            _deleteText: function(e) {
+                console.log("thing function");
+                console.log(e.srcElement.parentNode);
+                var el = e.srcElement.parentNode;
+                this.fire("deletelistasset", el)
+            },
+
+            /*********************************************************************************************************************/
+            /*                                               INTERACTIVE FUNCTIONS                                               */
+            /*********************************************************************************************************************/
+            // These functions change elements on the page, such as updating text.
+
+
+            /*********************************************************************************************************************/
+            /*                                                  MISC FUNCTIONS                                                   */
+            /*********************************************************************************************************************/
+
+            findParentID: function(el, tag) {
+                while (el.parentNode) {
+                    el = el.parentNode;
+                    if (el.tagName == tag)
+                        return el;
+                }
+                return null;
+            },
+
+            /*********************************************************************************************************************/
+            /*                                           POSSIBLY DEPRECATED FUNCTIONS                                           */
+            /*********************************************************************************************************************/
+
+
+            handleOutboundLinkClicks: function(e) {
+                ga('send', 'event', {
+                    eventCategory: 'Outbound Link',
+                    eventAction: 'click',
+                    eventLabel: event.target.href,
+                    transport: 'beacon'
+                });
+            },
+            toggle: function(e) {
+                collapsegroup = e.target.attributes['targetgroup'].value;
+                //console.log(collapsegroup);
+                this.$[collapsegroup].toggle();
+            }
+        });
+    </script>
+</dom-module>

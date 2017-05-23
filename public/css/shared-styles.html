@@ -1,0 +1,198 @@
+<!-- shared-styles.html -->
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<dom-module id="shared-styles">
+  <template>
+    <style>
+    :host {
+          /*******************************************************/
+          /**                   Colour Palette                  **/
+          /*******************************************************/
+
+            /* Primary Colour Palette */
+            --jal-blue: #00BBD3;
+            --jal-green: #0F9D58;
+            --jal-amber: #FFC106;
+
+            /* Extended Colour Palette */
+            --jal-black: #000000;
+            --jal-grey-heavy: #242536;
+            --jal-grey-dark: #757575;
+            --jal-grey: #D1D1D1;
+            --jal-grey-light: #EEEEEE;
+            --jal-grey-very-light: #FAFAFA;
+            --jal-white: #FFFFFF;
+            --jal-malachite: #00E575;
+            --jal-purple: #7D56C1;
+            --jal-coral: #FF6F42;
+            --jal-light-blue: #17DFFB;
+
+            /*******************************************************/
+            /**                 Colour Use Cases                  **/
+            /*******************************************************/
+
+            --primary-color: var(--jal-blue);
+            --accent-color: var(--jal-green);
+            --link-color: var(--jal-amber);
+            --primary-text-color: var(--jal-grey-heavy);
+            --secondary-text-color: var(--jal-grey-heavy);
+            --codeblock-text-color: var(--jal-white);
+            --tertiary-text-color: var(--jal-grey-dark);
+            --accent-text-color: var(--jal-green);
+
+            --primary-background-color: var(--jal-grey-light); /* When editing background color, you must also manually update the body background color in index.html */
+            --primary-article-color: var(--jal-white);
+
+            --section-separator-color: var(--jal-grey-light);
+            --rightnav-separator-color: var(--jal-grey);
+
+
+
+            --codeblock-background-color: var(--jal-grey-heavy);
+            --notabene-primary-color: var(--jal-grey-light);
+            --notabene-accent-color: var(--jal-green);
+            --warning-primary-color: var(--jal-grey-light);
+            --warning-accent-color: var(--jal-coral);
+
+
+            /*******************************************************/
+            /**               Font Standard Styles                **/
+            /*******************************************************/
+            --font-lesson-step-title: {
+              font-family: Roboto;
+              font-size: 36px;
+              line-height: 60px;
+              font-weight: 300;
+              color: var(--primary-text-color);
+              border-bottom: solid 3px var(--jal-grey-dark);
+              margin: 0;
+              margin-bottom: 10px;
+              padding: 0;
+            };
+            /* @apply(--font-lesson-step-title); */
+
+            --font-lesson-subsection-title: {
+              font-family: Roboto;
+              font-size: 18px;
+              line-height: 40px;
+              /*font-weight: 300;*/
+              color: var(--primary-color);
+              margin: 0;
+              /*margin-bottom: 10px;*/
+              /*margin-top: 10px;*/
+              padding: 0;
+              border-top: solid 2px var(--section-separator-color);
+            };
+
+            --font-lesson-text: {
+              font-family: Roboto;
+              font-size: 16px;
+              /*line-height: 60px;*/
+              /*font-weight: 300;*/
+              color: var(--primary-text-color);
+              margin: 0;
+              padding: 0;
+            };
+
+            --font-lesson-right-nav-step-title: {
+              font-family: Roboto;
+              font-size: 16px;
+              /*line-height: 60px;*/
+              /*font-weight: 300;*/
+              color: var(--tertiary-text-color);
+              margin: 0;
+              padding: 0;
+              text-align: left;
+              font-weight: bold;
+              margin-bottom: 10px;
+            };
+
+            --font-lesson-right-nav-subsection-title: {
+              font-family: Roboto;
+              font-size: 16px;
+              /*line-height: 60px;*/
+              /*font-weight: 300;*/
+              color: var(--tertiary-text-color);
+              margin: 0;
+              padding: 0;
+              text-align: left;
+              margin-bottom: 10px;
+            };
+
+            --font-lesson-right-nav-downloads: {
+              border-top: solid 2px var(--rightnav-separator-color);
+              font-family: Roboto;
+              font-size: 16px;
+              /*line-height: 60px;*/
+              /*font-weight: 300;*/
+              color: var(--tertiary-text-color);
+              margin: 0;
+              padding: 0;
+              text-align: left;
+              font-weight: bold;
+              margin-bottom: 10px;
+              padding-top: 10px;
+            };
+
+            --font-lesson-right-nav-download-link: {
+              text-decoration: none;
+              font-family: Roboto;
+              font-size: 16px;
+              /*line-height: 60px;*/
+              /*font-weight: 300;*/
+              color: var(--link-color);
+              margin: 0;
+              padding: 0;
+              text-align: left;
+              margin-bottom: 10px;
+            };
+
+            --font-lesson-right-nav-share: {
+              border-top: solid 2px var(--rightnav-separator-color);
+              font-family: Roboto;
+              font-size: 16px;
+              /*line-height: 60px;*/
+              /*font-weight: 300;*/
+              color: var(--tertiary-text-color);
+              margin: 0;
+              padding: 0;
+              text-align: left;
+              font-weight: bold;
+              margin-bottom: 10px;
+              padding-top: 10px;
+            };
+
+            /*******************************************************/
+            /**           Margin and Padding Standards            **/
+            /*******************************************************/
+
+            --standard-margin: {
+              padding-left: 20px;
+              padding-right: 20px;
+            };
+          }
+
+          /*******************************************************/
+          /**                  Element Styles                   **/
+          /*******************************************************/
+
+          .lesson-section {
+            color: var(--primary-text-color);
+            /*color: red;*/
+            font-size: 18px;
+            font-family: Roboto;
+          }
+          paper-menu {
+            background-color: var(--primary-background-color);
+          }
+
+          div.selectedsection {
+            background-color: red;
+          }
+
+          paper-textarea {
+
+          }
+
+    </style>
+  </template>
+</dom-module>

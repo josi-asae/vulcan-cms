@@ -1,0 +1,109 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-drawer-panel/paper-drawer-panel.html">
+<link rel="import" href="../../css/shared-styles.html">
+<dom-module id="lesson-list-ordered">
+  <template>
+    <style include="shared-styles">
+
+      ul {
+        width: 95%;
+        list-style-type: circle;
+      }
+
+      /*.heading {
+        padding: 10px 15px;
+        margin-top: 20px;
+        background-color: #f3f3f3;
+        border: 1px solid #dedede;
+        border-top-left-radius: 5px;
+        border-top-right-radius: 5px;
+        font-size: 18px;
+        cursor: pointer;
+        /*-webkit-tap-highlight-color: rgba(0,0,0,0);*/
+      width:
+
+      100
+      %
+      ;
+      text-align: left
+
+      ;
+      }
+
+      .collapse-content {
+        width: 100%;
+        padding-top: 15px;
+        /*border: 1px solid #dedede;*/
+      }
+
+      iron-collapse:focus {
+        outline-width: 0;
+      }
+
+      div, ol, li {
+        color: var(--primary-text-color);
+      }
+    </style>
+    <div>
+      <ol>
+        <template is="dom-repeat" items="{{points}}">
+          <li>{{item.copy}}</li>
+        </template>
+        </ul>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'lesson-list-ordered',
+
+      created: function () {
+        // //console.log(this.localName + '#' + this.id + ' was created');
+      },
+
+      ready: function () {
+        // //console.log(this.localName + '#' + this.id + ' has local DOM initialized');
+      },
+
+      attached: function () {
+        // //console.log(this.localName + '#' + this.id + ' was attached');
+      },
+
+      detached: function () {
+        // //console.log(this.localName + '#' + this.id + ' was detached');
+      },
+
+      attributeChanged: function (name, type) {
+        // //console.log(this.localName + '#' + this.id + ' attribute ' + name +
+        // ' was changed to ' + this.getAttribute(name));
+      },
+      properties: {
+        points: {
+          type: Object
+        }
+      },
+      handleOutboundLinkClicks: function (e) {
+        ga('send', 'event', {
+          eventCategory: 'Outbound Link',
+          eventAction: 'click',
+          eventLabel: event.target.href,
+          transport: 'beacon'
+        });
+      },
+      toggle: function (e) {
+        collapsegroup = e.target.attributes['targetgroup'].value;
+        // //console.log(collapsegroup);
+        this.$[collapsegroup].toggle();
+      }
+    });
+  </script>
+
+</dom-module>

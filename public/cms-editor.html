@@ -1,0 +1,1552 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../bower_components/paper-input/paper-textarea.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="lesson-step-editor.html">
+<link rel="import" href="elements/lesson-editor-elements/lesson-asset-selector.html">
+<link rel="import" href="elements/lesson-editor-elements/lesson-meta-editor.html">
+<link rel="import" href="../css/shared-styles.html">
+<dom-module id="cms-editor">
+    <template>
+        <style include="shared-styles">
+            :host {
+                @apply(--layout-vertical);
+                @apply(--layout-center);
+                overflow-x: auto;
+
+                --paper-fab-background: var(--paper-teal-500);
+            }
+
+            .step {
+                margin: 20px;
+                min-height: 400px;
+                background-color: white;
+            }
+
+            paper-fab#addfab {
+                position: fixed;
+                bottom: 9em;
+                right: 1em;
+                z-index: 10;
+            }
+
+            paper-fab#savefab {
+                position: fixed;
+                bottom: 5em;
+                right: 1em;
+                z-index: 10;
+            }
+
+            paper-fab#downloadfab {
+                position: fixed;
+                bottom: 1em;
+                right: 1em;
+                z-index: 10;
+            }
+
+            paper-fab.addsectionfab {
+                position: relative;
+                bottom: 13em;
+                left: 50em;
+            }
+
+            paper-fab.moveupfab {
+                position: relative;
+                bottom: 12em;
+                left: 50em;
+            }
+
+            paper-fab.movedownfab {
+                position: relative;
+                bottom: 11em;
+                left: 50em;
+            }
+
+            paper-button.deletefab {
+                position: relative;
+                bottom: 10em;
+                left: 50em;
+            }
+
+            pageMenu {
+                position: relative;
+                bottom: 1em;
+                left: 1em;
+            }
+
+            div.selectedsection {
+                background-color: red;
+            }
+
+            .editingbits {
+              @apply(--layout-horizontal);
+            }
+            .pagelist {
+              @apply(--layout-vertical);
+            }
+        </style>
+        <h1>Editor</h1>
+        <paper-fab id="addfab" on-tap="_newPage" icon="icons:add"></paper-fab>
+        <paper-fab id="savefab" on-tap="_saveChanges" icon="icons:save"></paper-fab>
+        <paper-fab id="downloadfab" on-tap="_exportJSON" icon="icons:file-download"></paper-fab>
+        <a id="downloadAnchorElem" style="display:none"></a>
+        <div class="editingbits">
+          <div class="pagelist">
+        <template id="editorStepRepeater" is="dom-repeat" items={{lessonedited.contentparts}} as="page">
+            <div class="step">
+                <lesson-step-editor id="currentstep" content="{{page}}"
+                                    on-mouseover="_pageHovered"></lesson-step-editor>
+                <div class="pageMenu">
+                    <paper-fab class="addsectionfab" on-tap="_newSection" icon="icons:view-agenda"></paper-fab>
+                    <paper-fab class="moveupfab" on-tap="_movePageUp" icon="expand-less"></paper-fab>
+                    <paper-fab class="movedownfab" on-tap="_movePageDown" icon="expand-more"></paper-fab>
+                    <paper-button class="deletefab" on-tap="_deletePage"><iron-icon icon="delete"></iron-icon>Delete Page</paper-button>
+                </div>
+            </div>
+        </template>
+      </div>
+        <div class="metaeditor">
+          <lesson-meta-editor theid="{{lesson.id}}" lesson="{{lesson}}"></lesson-meta-editor>
+          <!-- <paper-textarea label="Lesson Title" value="{{lesson.name}}"></paper-textarea>
+          <paper-textarea label="Lesson HREF Route" value="{{lesson.href}}"></paper-textarea>
+          <paper-textarea label="Lesson Category" value="{{lesson.category}}"></paper-textarea> -->
+        </div>
+        </div>
+    </template>
+    <script>
+        Polymer({
+            is: 'cms-editor',
+            properties: {
+                lesson: {
+                    type: Object,
+                    observer: '_lessonChanged',
+                    notify: true
+                },
+                lessonedited: {
+                    type: Object,
+                    notify: true
+                },
+                previousId: {
+                    type: String,
+                    notify: true
+                },
+                previousSectionId: {
+                    type: String,
+                    notify: true
+                }
+            },
+            listeners: {
+                'tap': '_lookAtTap',
+                'addasset': '_newAsset',
+                'deleteasset': '_deleteAssetListener',
+                'upasset': '_moveAssetUp',
+                'downasset': '_moveAssetDown',
+                'addsection': '_newSection',
+                'deletesection': '_deleteSection',
+                'upsection': '_moveSectionUp',
+                'downsection': '_moveSectionDown',
+                'updatetext': '_updateTextInLesson',
+                'updatesectionname': '_updateSectionNameInLesson',
+                'updatecodeblock': '_updateCodeblockInLesson',
+                'updatenotabene': '_updateNotaBeneInLesson',
+                'updatewarning': '_updateWarningInLesson',
+                'updatelistunordered': '_updateListUnorderedInLesson',
+                'updatelistordered': '_updateListOrderedInLesson',
+                'updateimage': '_updateImageInLesson',
+                'changeassettotext': '_changeToText',
+                'changeassettool': '_changeToOL',
+                'changeassettoul': '_changeToUL',
+                'changeassettowarning': '_changeToWarning',
+                'changeassettonotabene': '_changeToNotabene',
+                'changeassettoimage': '_changeToImage',
+                'changeassettovideo': '_changeToVideo',
+                'changeassettocodeblock': '_changeToCodeblock',
+                'addcopytotext': '_addCopyToAsset',
+                'addlinktotext': '_addLinkToAsset',
+                'addpointtoasset': '_addPointToAsset',
+                'deletetextasset': '_deleteTextAsset',
+                'deletelistasset': '_deletePointAsset',
+                'updatefrontimage': '_saveChanges'
+            },
+
+            /*********************************************************************************************************************/
+            /*                                                  PAGE BEHAVIOURS                                                  */
+            /*********************************************************************************************************************/
+
+            _lookAtTap: function (e) {
+                el = e.srcElement;
+                var assetInfo = this._findAssetLocation(el);
+                var sectionID = this._getSectionInfo(el);
+                elId = assetInfo[0];
+                newEl = assetInfo[1];
+                if (this.previousSectionId) {
+                    if (this.previousSectionId != sectionID) {
+                        // remove selected status from other sections
+                        var oldSection = document.getElementById("section-" + this.previousSectionId);
+                        if (oldSection){ //this check is needed in case the previous section was deleted
+                        this._removeSelectedSectionStyling(oldSection);
+                        }
+                        // add selected styling to selected section
+                        var selectedSection = document.getElementById("section-" + sectionID);
+                        this._setSelectedSectionStyling(selectedSection);
+                        // set old section ID to current section ID
+                        this.previousSectionId = sectionID;
+                    }
+                } else {
+                    var selectedSection = document.getElementById("section-" + sectionID);
+                    this._setSelectedSectionStyling(selectedSection);
+                    // set old section ID to current section ID
+                    this.previousSectionId = sectionID;
+                }
+
+                if (this.previousId) {
+                    if (this.previousId != elId) {
+                        // delete existing lesson-asset-selector
+                        var oldParent = document.getElementById(this.previousId)
+                        this._deleteAssetSelectorChild(oldParent);
+                        console.log("the asset selector has been deleted");
+                        this._removeSelectedAssetStyling(oldParent);
+                    }
+                }
+                if (newEl) {
+                    var hasEditorAlready = this._determineifElHasEditor(newEl);
+                    if (!hasEditorAlready) {
+                        this._addAssetSelector(elId);
+                        this._setSelectedAssetStyling(document.getElementById(elId));
+                        this.previousId = elId;
+                    }
+                }
+            },
+
+            /*********************************************************************************************************************/
+            /*                                                  DYNAMIC STYLING                                                  */
+            /*********************************************************************************************************************/
+
+            _removeSelectedSectionStyling: function (el) {
+              if (el.classList.contains('selectedsection')){
+                el.classList.remove("selectedsection");
+                el.style.borderStyle = null;
+                el.style.borderWidth = null;
+                el.style.borderColor = null;
+                }
+            },
+
+            _setSelectedSectionStyling: function (el) {
+                if (el) {
+                    el.classList.add("selectedsection");
+                    el.style.borderStyle = "solid";
+                    el.style.borderWidth = "0 0 0 10px";
+                    el.style.borderColor = "#00BBD3";
+                }
+            },
+
+            _removeSelectedAssetStyling: function (el) {
+                if (el && el.childNodes.length) { // when deleting assets, sometimes el doesn't exist here, so we make sure it works
+                    for (i = 0; i < el.childNodes.length; i++) {
+                        var childEl = el.childNodes[i];
+                        if (childEl.id == "editorelement") {
+
+                            childEl.style.boxShadow = null;
+                        }
+                    }
+                }
+            },
+
+            _setSelectedAssetStyling: function (el) {
+                if (el && el.childNodes.length) { // when deleting assets, sometimes el doesn't exist here, so we make sure it works
+                    for (i = 0; i < el.childNodes.length; i++) {
+                        var childEl = el.childNodes[i];
+                        if (childEl.id == "editorelement") {
+
+                            childEl.style.boxShadow = "0 -2px 2px rgba(0,0,0,0.2), 0 6px 10px rgba(0,0,0,0.2)";
+                            // childEl.style.boxShadow = "0 6px 10px rgba(0,0,0,0.2)";
+                        }
+                    }
+                }
+            },
+
+            /*********************************************************************************************************************/
+            /*                                         ELEMENT ID <> OBJECT ID CONVERSION                                        */
+            /*********************************************************************************************************************/
+
+            _findIndexOfSectionFromId: function (elId) {
+                var i;
+                var j;
+                var k;
+                var lesson = this.lessonedited;
+                for (i = 0; i < lesson.contentparts.length; i++) {
+                    var steps = lesson.contentparts[i];
+                    for (j = 0; j < steps.sections.length; j++) {
+                        var sections = steps.sections[j];
+                        if (sections.id == elId) {
+                            return [i, j];
+                        }
+                    }
+                }
+            },
+
+            _findIndexOfAssetFromId: function (elId) {
+                var i;
+                var j;
+                var k;
+                var lesson = this.lessonedited;
+                for (i = 0; i < lesson.contentparts.length; i++) {
+                    var steps = lesson.contentparts[i];
+                    for (j = 0; j < steps.sections.length; j++) {
+                        var sections = steps.sections[j];
+                        for (k = 0; k < sections.assets.length; k++) {
+                            var assets = sections.assets[k];
+                            if (assets.id == elId) {
+                                return [i, j, k];
+                            }
+                        }
+                    }
+                }
+            },
+
+            _findIndexOfSubAssetFromId: function (elId) {
+                var i;
+                var j;
+                var k;
+                var l;
+                var lesson = this.lessonedited;
+                for (i = 0; i < lesson.contentparts.length; i++) {
+                    var steps = lesson.contentparts[i];
+                    for (j = 0; j < steps.sections.length; j++) {
+                        var sections = steps.sections[j];
+                        for (k = 0; k < sections.assets.length; k++) {
+                            var assets = sections.assets[k];
+                              if (assets.content) {
+                              for (l = 0; l < assets.content.length; l++) {
+                                  var subassets = assets.content[l];
+                                if (subassets.id == elId) {
+                                    return [i, j, k, l];
+                                }
+                              }
+                            }
+                        }
+                    }
+                }
+            },
+
+            _findIndexOfSubAssetListFromId: function (elId) {
+                var i;
+                var j;
+                var k;
+                var l;
+                var lesson = this.lessonedited;
+                for (i = 0; i < lesson.contentparts.length; i++) {
+                    var steps = lesson.contentparts[i];
+                    for (j = 0; j < steps.sections.length; j++) {
+                        var sections = steps.sections[j];
+                        for (k = 0; k < sections.assets.length; k++) {
+                            var assets = sections.assets[k];
+                              if (assets.points) {
+                              for (l = 0; l < assets.points.length; l++) {
+                                  var subassets = assets.points[l];
+                                if (subassets.id == elId) {
+                                    return [i, j, k, l];
+                                }
+                              }
+                            }
+                        }
+                    }
+                }
+            },
+            _getSectionInfo: function (el) {
+                while (el.parentNode) {
+                    el = el.parentNode;
+                    var idSubstring
+                    if (el.id && el.id.length > 7) {
+                        idSubstring = el.id.substring(0, 7);
+                    } else {
+                        idSubstring = "";
+                    }
+                    if (idSubstring == "section") {
+                        sectionID = el.id.substring(8);
+                        return sectionID;
+                    }
+                }
+                return null;
+            },
+            _findAssetLocation: function (el) {
+                while (el.parentNode) {
+                    var assetType;
+                    switch (el.tagName) {
+                        case "LESSON-TEXT-EDITOR":
+                            assetType = "LESSON-TEXT-EDITOR";
+                            return [el.id, el];
+                            break;
+                        case "LESSON-LIST-UNORDERED-EDITOR":
+                            assetType = "LESSON-LIST-UNORDERED-EDITOR";
+                            return [el.id, el];
+                            break;
+                        case "LESSON-LIST-ORDERED-EDITOR":
+                            assetType = "LESSON-LIST-ORDERED-EDITOR";
+                            return [el.id, el];
+                            break;
+                        case "LESSON-WARNING-EDITOR":
+                            assetType = "LESSON-WARNING-EDITOR";
+                            return [el.id, el];
+                            break;
+                        case "LESSON-NOTABENE-EDITOR":
+                            assetType = "LESSON-NOTABENE-EDITOR";
+                            return [el.id, el];
+                            break;
+                        case "LESSON-CODEBLOCK-EDITOR":
+                            assetType = "LESSON-CODEBLOCK-EDITOR";
+                            return [el.id, el];
+                            break;
+                            // case "LESSON-SECTION-EDITOR":
+                            //   assetType = "LESSON-SECTION-EDITOR";
+                            //   return [el.id, el];
+                            //   break;
+                        case "LESSON-IMAGE-EDITOR":
+                            assetType = "LESSON-IMAGE-EDITOR";
+                            return [el.id, el];
+                            break;
+                            // case "LESSON-SECTION-EDITOR":
+                            //   assetType = "LESSON-SECTION-EDITOR";
+                            //   return [el.id, el];
+                            //   break;
+                        default:
+                            assetType = ["none", el]
+                    }
+
+                        el = el.parentNode;
+                }
+                return [null, null];
+            },
+
+            _findSubAssetLocation: function (el) { //el is the parent of the delete button
+                if (el && el.childNodes.length) { // when deleting assets, sometimes el doesn't exist here, so we make sure it works
+                    for (i = 0; i < el.childNodes.length; i++) {
+                        var childEl = el.childNodes[i];
+                        if (childEl.tagName == "PAPER-FAB") {
+                          return childEl.id;
+                        }
+                    }
+                }
+            },
+
+            /*********************************************************************************************************************/
+            /*                                              DYNAMIC DOM MANIPULATION                                             */
+            /*********************************************************************************************************************/
+            _deleteAssetSelectorChild: function (el) {
+                var childId;
+                var child;
+
+                if (el && el.childNodes.length) { // when deleting assets, sometimes el doesn't exist here, so we make sure it works
+                    for (i = 0; i < el.childNodes.length; i++) {
+                        var childEl = el.childNodes[i];
+                        if (childEl.id == "editorelement") {
+                            el = childEl;
+                        }
+                    }
+                }
+
+
+                if (el && el.childNodes.length) { // when deleting assets, sometimes el doesn't exist here, so we make sure it works
+                    for (i = 0; i < el.childNodes.length; i++) {
+                        var childEl = el.childNodes[i];
+                        if (childEl.tagName == "LESSON-ASSET-SELECTOR") {
+                            childId = childEl.id
+                            el.removeChild(el.childNodes[i]);
+                        }
+                    }
+                }
+                child = document.getElementById(childId);
+            },
+            _determineifElHasEditor: function (el) {
+
+                if (el && el.childNodes.length) { // when deleting assets, sometimes el doesn't exist here, so we make sure it works
+                    for (i = 0; i < el.childNodes.length; i++) {
+                        var childEl = el.childNodes[i];
+                        if (childEl.id == "editorelement") {
+                            el = childEl;
+                        }
+                    }
+                }
+                if (el.childNodes.length) {
+                    for (i = 0; i < el.childNodes.length; i++) {
+                        var childEl = el.childNodes[i];
+                        if (childEl.tagName == "LESSON-ASSET-SELECTOR") {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            },
+            _addAssetSelector: function (elId) {
+                var newElSelector = document.createElement("lesson-asset-selector");
+                // document.getElementById(elId).appendChild(newElSelector);
+                el = document.getElementById(elId);
+                var assetType = el.tagName;
+                var selectedType;
+                switch (assetType){
+                    case "LESSON-TEXT-EDITOR":
+                        selectedType = 0;
+                        break;
+                    case "LESSON-LIST-UNORDERED-EDITOR":
+                        selectedType = 2;
+                        break;
+                    case "LESSON-LIST-ORDERED-EDITOR":
+                        selectedType = 1;
+                        break;
+                    case "LESSON-WARNING-EDITOR":
+                        selectedType = 3;
+                        break;
+                    case "LESSON-NOTABENE-EDITOR":
+                        selectedType = 4;
+                        break;
+                    case "LESSON-IMAGE-EDITOR":
+                        selectedType = 5;
+                        break;
+                    case "LESSON-CODEBLOCK-EDITOR":
+                        selectedType = 7;
+                        break;
+                }
+
+                newElSelector.selectedtype = selectedType;
+
+                if (el && el.childNodes.length) { // when deleting assets, sometimes el doesn't exist here, so we make sure it works
+                    for (i = 0; i < el.childNodes.length; i++) {
+                        var childEl = el.childNodes[i];
+                        if (childEl.id == "editorelement") {
+                            childEl.appendChild(newElSelector);
+                        }
+                    }
+                }
+
+            },
+
+            /*********************************************************************************************************************/
+            /*                                                     PAGE CRUD                                                     */
+            /*********************************************************************************************************************/
+            _newPage: function () {
+                var arraylength = this.lessonedited.contentparts.length;
+                var newPage = this._initializePage();
+                var newContentParts = this.lessonedited.contentparts;
+                newContentParts.push(newPage);
+                this.lessonedited.contentparts = [];
+                this.lessonedited.contentparts = newContentParts;
+                this.notifyPath('lessonedited.contentparts');
+                this.notifySplices('lessonedited.contentparts', [{
+                    index: arraylength,
+                    removed: [],
+                    addedCount: 1,
+                    obect: this.lessonedited.contentparts,
+                    type: 'splice'
+                }]);
+                this._reRender2();
+                window.scrollTo(0, document.body.scrollHeight);
+            },
+            _deletePage: function (e) {
+                index = e.model.__data__.index; //index number of the item
+                removedBit = this.lessonedited.contentparts[index];
+                this.splice('lessonedited.contentparts', index, 1);
+            },
+            _movePageUp: function (e) {
+                index = e.model.__data__.index; //index number of the item
+                elementToMove = this.get(['lessonedited.contentparts', index]);
+                this.splice('lessonedited.contentparts', index, 1);
+                this.splice('lessonedited.contentparts', index - 1, 0, elementToMove);
+                this._saveChanges();
+            },
+            _movePageDown: function (e) {
+                index = e.model.__data__.index; //index number of the item
+                elementToMove = this.get(['lessonedited.contentparts', index]);
+                this.splice('lessonedited.contentparts', index, 1);
+                this.splice('lessonedited.contentparts', index + 1, 0, elementToMove);
+                this._saveChanges();
+            },
+
+            /*********************************************************************************************************************/
+            /*                                                   SECTION CRUD                                                    */
+            /*********************************************************************************************************************/
+            _newSection: function (e) {
+                index = e.model.__data__.index; //index number of the item
+                var elementToModify = this.get(['lessonedited.contentparts', index]);
+                var arraylength = elementToModify.sections.length;
+                var pathForNotification = 'lessonedited.contentparts.' + index + '.sections';
+                this.splice(pathForNotification, arraylength + 1, 0, this._initializeSection());
+                this._saveChanges();
+            },
+            _deleteSection: function (e) {
+                var el = e.srcElement;
+                elId = this._getSectionInfo(el);
+                var indexOfCurrentAsset = this._findIndexOfSectionFromId(elId);
+                var pathForNotification = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections'
+                this.splice(pathForNotification, indexOfCurrentAsset[1], 1);
+                this._saveChanges();
+            },
+            _moveSectionUp: function (e) {
+                var el = e.srcElement;
+                elId = this._getSectionInfo(el);
+                var indexOfCurrentAsset = this._findIndexOfSectionFromId(elId);
+                var pathForNotification = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections'
+                elementToMove = this.get([pathForNotification, indexOfCurrentAsset[1]]);
+                this.splice(pathForNotification, indexOfCurrentAsset[1], 1);
+                this.splice(pathForNotification, indexOfCurrentAsset[1] - 1, 0, elementToMove);
+                this._saveChanges();
+            },
+            _moveSectionDown: function (e) {
+                var el = e.srcElement;
+                elId = this._getSectionInfo(el);
+                var indexOfCurrentAsset = this._findIndexOfSectionFromId(elId);
+                var pathForNotification = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections'
+                elementToMove = this.get([pathForNotification, indexOfCurrentAsset[1]]);
+                this.splice(pathForNotification, indexOfCurrentAsset[1], 1);
+                this.splice(pathForNotification, indexOfCurrentAsset[1] + 1, 0, elementToMove);
+                this._saveChanges();
+            },
+            _moveSectionToNewPage: function (e) {
+                // get current section ID
+                // find element of that ID in this.lessonedited
+                // be given new page ID
+                // save current section as Object
+                // delete current section from lesson object
+                // find new page element based on ID
+                // add section to end of that page
+            },
+
+            /*********************************************************************************************************************/
+            /*                                                     ASSET CRUD                                                    */
+            /*********************************************************************************************************************/
+
+            _newAsset: function (e) {
+                var el = e.srcElement;
+                var assetInfo = this._findAssetLocation(el);
+                elId = assetInfo[0];
+                newEl = assetInfo[1]
+                var indexOfCurrentAsset = this._findIndexOfAssetFromId(elId);
+                var pathForNotification = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections.' + indexOfCurrentAsset[1] + '.assets'
+                this.splice(pathForNotification, indexOfCurrentAsset[2] + 1, 0, this._initializeAssetText());
+                this._saveChanges();
+            },
+            _deleteAsset: function (el) {
+                this._deleteAssetSelectorChild(el);
+                var assetInfo = this._findAssetLocation(el);
+                elId = assetInfo[0];
+                var indexOfCurrentAsset = this._findIndexOfAssetFromId(elId);
+                var pathForNotification = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections.' + indexOfCurrentAsset[1] + '.assets';
+                this.splice(pathForNotification, indexOfCurrentAsset[2], 1);
+                this._saveChanges();
+            },
+            _moveAssetUp: function (e) {
+                var el = e.srcElement;
+                var assetInfo = this._findAssetLocation(el);
+                elId = assetInfo[0];
+                newEl = assetInfo[1]
+                var indexOfCurrentAsset = this._findIndexOfAssetFromId(elId); // this is an array
+                var pathForNotification = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections.' + indexOfCurrentAsset[1] + '.assets';
+                elementToMove = this.get([pathForNotification, indexOfCurrentAsset[2]]);
+                this.splice(pathForNotification, indexOfCurrentAsset[2], 1);
+                this.splice(pathForNotification, indexOfCurrentAsset[2] - 1, 0, elementToMove);
+                this._saveChanges();
+            },
+            _moveAssetDown: function (e) {
+                var el = e.srcElement;
+                var assetInfo = this._findAssetLocation(el);
+                elId = assetInfo[0];
+                newEl = assetInfo[1]
+                var indexOfCurrentAsset = this._findIndexOfAssetFromId(elId); // this is an array
+                var pathForNotification = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections.' + indexOfCurrentAsset[1] + '.assets';
+                elementToMove = this.get([pathForNotification, indexOfCurrentAsset[2]]);
+                this.splice(pathForNotification, indexOfCurrentAsset[2], 1);
+                this.splice(pathForNotification, indexOfCurrentAsset[2] + 1, 0, elementToMove);
+                this._saveChanges();
+            },
+            _changeAssetType: function (el, changeToType) {
+                var assetInfo = this._findAssetLocation(el);
+                var assetId = assetInfo[0];
+                var assetNode = assetInfo[1];
+                var currentType = assetNode.tagName;
+                var newNode;
+                elId = assetInfo[0];
+                var indexOfCurrentAsset = this._findIndexOfAssetFromId(elId);
+                var pathForNotification = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections.' + indexOfCurrentAsset[1] + '.assets'
+                switch (currentType) {
+                  case "LESSON-TEXT-EDITOR":
+                  // if changeToType is text, warning, or notabene, mutate appropriately
+                    var textContent = assetNode.thecontent;
+                    switch (changeToType) {
+                      case "text":
+                      // do nothing
+                      break
+                      case "ordered-list":
+                        newNode = this._initializeAssetListOrdered();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "unordered-list":
+                        newNode = this._initializeAssetListUnordered();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "warning":
+                        newNode = this._initializeAssetWarning();
+                        newNode.content = textContent;
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "notabene":
+                        newNode = this._initializeAssetNotebene();
+                        newNode.content = textContent;
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "image":
+                        newNode = this._initializeAssetImage();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "video":
+                      break
+                      case "codeblock":
+                        newNode = this._initializeAssetCodeblock();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                    }
+                  break
+                  case "LESSON-NOTABENE-EDITOR":
+                  // if changeToType is text, warning, or notabene, mutate appropriately
+                    var textContent = assetNode.thecontent;
+                    switch (changeToType) {
+                      case "text":
+                        newNode = this._initializeAssetText();
+                        newNode.content = textContent;
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      // do nothing
+                      break
+                      case "ordered-list":
+                        newNode = this._initializeAssetListOrdered();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "unordered-list":
+                        newNode = this._initializeAssetListUnordered();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "warning":
+                        newNode = this._initializeAssetWarning();
+                        newNode.content = textContent;
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "notabene":
+                      break
+                      case "image":
+                        newNode = this._initializeAssetImage();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "video":
+                      break
+                      case "codeblock":
+                        newNode = this._initializeAssetCodeblock();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                    }
+                  break
+                  case "LESSON-WARNING-EDITOR":
+                  // if changeToType is text, warning, or notabene, mutate appropriately
+                    var textContent = assetNode.thecontent;
+                    switch (changeToType) {
+                      case "text":
+                        newNode = this._initializeAssetText();
+                        newNode.content = textContent;
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      // do nothing
+                      break
+                      case "ordered-list":
+                        newNode = this._initializeAssetListOrdered();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "unordered-list":
+                        newNode = this._initializeAssetListUnordered();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "warning":
+                      break
+                      case "notabene":
+                        newNode = this._initializeAssetNotebene();
+                        newNode.content = textContent;
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "image":
+                        newNode = this._initializeAssetImage();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "video":
+                      break
+                      case "codeblock":
+                        newNode = this._initializeAssetCodeblock();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                    }
+                  break
+                  case "LESSON-LIST-UNORDERED-EDITOR":
+                  // if changeToType is text, warning, or notabene, mutate appropriately
+                    var listPoints = assetNode.points;
+                    switch (changeToType) {
+                      case "text":
+                        newNode = this._initializeAssetText();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      // do nothing
+                      break
+                      case "ordered-list":
+                        newNode = this._initializeAssetListOrdered();
+                        newNode.points = listPoints;
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "unordered-list":
+                      break
+                      case "warning":
+                        newNode = this._initializeAssetWarning();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "notabene":
+                        newNode = this._initializeAssetNotebene();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "image":
+                        newNode = this._initializeAssetImage();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "video":
+                      break
+                      case "codeblock":
+                        newNode = this._initializeAssetCodeblock();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                    }
+                  break
+                  case "LESSON-LIST-ORDERED-EDITOR":
+                  // if changeToType is text, warning, or notabene, mutate appropriately
+                    var listPoints = assetNode.points;
+                    switch (changeToType) {
+                      case "text":
+                        newNode = this._initializeAssetText();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      // do nothing
+                      break
+                      case "ordered-list":
+                      break
+                      case "unordered-list":
+                        newNode = this._initializeAssetListUnordered();
+                        newNode.points = listPoints;
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "warning":
+                        newNode = this._initializeAssetWarning();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "notabene":
+                        newNode = this._initializeAssetNotebene();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "image":
+                        newNode = this._initializeAssetImage();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "video":
+                      break
+                      case "codeblock":
+                        newNode = this._initializeAssetCodeblock();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                    }
+                  break
+                  case "LESSON-CODEBLOCK-EDITOR":
+                  // if changeToType is text, warning, or notabene, mutate appropriately
+                    var listPoints = assetNode.points;
+                    switch (changeToType) {
+                      case "text":
+                        newNode = this._initializeAssetText();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      // do nothing
+                      break
+                      case "ordered-list":
+                        newNode = this._initializeAssetListOrdered();
+                        newNode.points = listPoints;
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "unordered-list":
+                        newNode = this._initializeAssetListUnordered();
+                        newNode.points = listPoints;
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "warning":
+                        newNode = this._initializeAssetWarning();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "notabene":
+                        newNode = this._initializeAssetNotebene();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "image":
+                        newNode = this._initializeAssetImage();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "video":
+                      break
+                      case "codeblock":
+                      break
+                    }
+                  break
+                  case "LESSON-IMAGE-EDITOR":
+                  // if changeToType is text, warning, or notabene, mutate appropriately
+                    var listPoints = assetNode.points;
+                    switch (changeToType) {
+                      case "text":
+                        newNode = this._initializeAssetText();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      // do nothing
+                      break
+                      case "ordered-list":
+                        newNode = this._initializeAssetListOrdered();
+                        newNode.points = listPoints;
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "unordered-list":
+                        newNode = this._initializeAssetListUnordered();
+                        newNode.points = listPoints;
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "warning":
+                        newNode = this._initializeAssetWarning();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "notabene":
+                        newNode = this._initializeAssetNotebene();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                      case "image":
+                      break
+                      case "video":
+                      break
+                      case "codeblock":
+                        newNode = this._initializeAssetCodeblock();
+                        this._deleteAsset(assetNode);
+                        this.splice(pathForNotification, indexOfCurrentAsset[2], 0, newNode);
+                        this._saveChanges();
+                      break
+                    }
+                  break
+                }
+                // keep text asset across types
+            },
+
+            _addCopyToAsset: function(e){
+              el = e.detail.srcElement;
+              var assetInfo = this._findAssetLocation(el);
+              elId = assetInfo[0];
+              newEl = assetInfo[1]
+              var indexOfCurrentAsset = this._findIndexOfAssetFromId(elId); // this is an array, [page, section, asset]
+              var elementPath = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections.' + indexOfCurrentAsset[1] + '.assets'
+              var assetPath = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections.' + indexOfCurrentAsset[1] + '.assets.' + indexOfCurrentAsset[2] + '.content'
+              elementToModify = this.get([elementPath, indexOfCurrentAsset[2]]);
+              var newCopy = {};
+              newCopy.type = "copy";
+              newCopy.copy = "new text";
+              newCopy.id = this._generateUUID4();
+              this.splice(assetPath, elementToModify.content.length, 0, newCopy);
+              this._saveChanges();
+            },
+
+            _addLinkToAsset: function(e){
+
+              el = e.detail.srcElement;
+              var assetInfo = this._findAssetLocation(el);
+              elId = assetInfo[0];
+              newEl = assetInfo[1]
+              var indexOfCurrentAsset = this._findIndexOfAssetFromId(elId); // this is an array, [page, section, asset]
+              var elementPath = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections.' + indexOfCurrentAsset[1] + '.assets'
+              var assetPath = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections.' + indexOfCurrentAsset[1] + '.assets.' + indexOfCurrentAsset[2] + '.content'
+              elementToModify = this.get([elementPath, indexOfCurrentAsset[2]]);
+              var newCopy = {};
+              newCopy.type = "link";
+              newCopy.link = {};
+              newCopy.link.url = "url here";
+              newCopy.link.copy = "text for link here";
+              newCopy.id = this._generateUUID4();
+              this.splice(assetPath, elementToModify.content.length, 0, newCopy);
+              this._saveChanges();
+            },
+
+            _addPointToAsset: function(e){
+
+              el = e.detail.srcElement;
+              var assetInfo = this._findAssetLocation(el);
+              elId = assetInfo[0];
+              newEl = assetInfo[1]
+              var indexOfCurrentAsset = this._findIndexOfAssetFromId(elId); // this is an array, [page, section, asset]
+              var elementPath = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections.' + indexOfCurrentAsset[1] + '.assets'
+              var assetPath = 'lessonedited.contentparts.' + indexOfCurrentAsset[0] + '.sections.' + indexOfCurrentAsset[1] + '.assets.' + indexOfCurrentAsset[2] + '.points'
+              elementToModify = this.get([elementPath, indexOfCurrentAsset[2]]);
+              var newCopy = {};
+              newCopy.copy = "text for link here";
+              newCopy.id = this._generateUUID4();
+              this.splice(assetPath, elementToModify.points.length, 0, newCopy);
+              this._saveChanges();
+            },
+            _deleteTextAsset: function(el){
+              var parentNode = el.detail.parentNode;
+              // this._deleteAssetSelectorChild(el);
+              var subAssetId = this._findSubAssetLocation(parentNode);
+              var indexOfCurrentSubAsset = this._findIndexOfSubAssetFromId(subAssetId);
+              console.log(indexOfCurrentSubAsset);
+              var pathForNotification = 'lessonedited.contentparts.' + indexOfCurrentSubAsset[0] + '.sections.' + indexOfCurrentSubAsset[1] + '.assets.' + indexOfCurrentSubAsset[2] + '.content';
+              this.splice(pathForNotification, indexOfCurrentSubAsset[3], 1);
+              this._saveChanges();
+            },
+            _deletePointAsset: function(el){
+              var parentNode = el.detail.parentNode;
+              var subAssetId = this._findSubAssetLocation(parentNode);
+              var indexOfCurrentSubAsset = this._findIndexOfSubAssetListFromId(subAssetId);
+              var pathForNotification = 'lessonedited.contentparts.' + indexOfCurrentSubAsset[0] + '.sections.' + indexOfCurrentSubAsset[1] + '.assets.' + indexOfCurrentSubAsset[2] + '.points';
+              this.splice(pathForNotification, indexOfCurrentSubAsset[3], 1);
+              this._saveChanges();
+            },
+            /*********************************************************************************************************************/
+            /*                                              ASSET MUTATION LISTENERS                                             */
+            /*********************************************************************************************************************/
+
+            _changeToText: function (e) {
+              var el = e.detail.e.srcElement;
+              var changeToType = "text";
+              this._changeAssetType(el, changeToType);
+            },
+            _changeToOL: function (e) {
+              var el = e.detail.e.srcElement;
+              var changeToType = "ordered-list";
+              this._changeAssetType(el, changeToType);
+            },
+            _changeToUL: function (e) {
+              var el = e.detail.e.srcElement;
+              var changeToType = "unordered-list";
+              this._changeAssetType(el, changeToType);
+            },
+            _changeToWarning: function (e) {
+              var el = e.detail.e.srcElement;
+              var changeToType = "warning";
+              this._changeAssetType(el, changeToType);
+            },
+            _changeToNotabene: function (e) {
+              var el = e.detail.e.srcElement;
+              var changeToType = "notabene";
+              this._changeAssetType(el, changeToType);
+            },
+            _changeToImage: function (e) {
+              var el = e.detail.e.srcElement;
+              var changeToType = "image";
+              this._changeAssetType(el, changeToType);
+            },
+            _changeToVideo: function (e) {
+              var el = e.detail.e.srcElement;
+              var changeToType = "video";
+              this._changeAssetType(el, changeToType);
+            },
+            _changeToCodeblock: function (e) {
+              var el = e.detail.e.srcElement;
+              var changeToType = "codeblock";
+              this._changeAssetType(el, changeToType);
+            },
+
+            /*********************************************************************************************************************/
+            /*                                                  INITIALIZATIONS                                                  */
+            /*********************************************************************************************************************/
+
+            _initializePage: function () {
+
+                var page = {};
+                page.id = this._generateUUID4();
+                page.name = "New Page";
+                page.time_remaining = "";
+                page.downloads = [];
+                page.sections = [];
+                var newSection = this._initializeSection();
+                page.sections = [newSection];
+                return page;
+            },
+            _initializeSection: function () {
+                var section = {};
+                section.id = this._generateUUID4();
+                section.name = "New Section";
+                section.assets = [this._initializeAssetText()];
+                return section;
+            },
+            _initializeAssetText: function () {
+                var asset = {};
+                asset.id = this._generateUUID4();
+                asset.type = "text";
+                asset.content = [this._initializeAssetTextContentCopy()];
+                return asset;
+            },
+            _initializeAssetTextContentCopy: function () {
+                var content = {};
+                content.id = this._generateUUID4();
+                content.type = "copy";
+                content.copy = "Id aliqua ullamco ullamco commodo ipsum Lorem. Amet ut eu voluptate cillum occaecat Lorem et cillum excepteur ullamco mollit enim. Ea nostrud dolore culpa nulla nostrud ex voluptate anim laborum esse commodo sunt. Velit laboris pariatur labore dolore occaecat enim fugiat qui. Sit in eu ex aute minim deserunt qui consectetur laboris nostrud ad quis qui id.";
+                return content;
+            },
+            _initializeAssetWarning: function () {
+                var asset = {};
+                asset.id = this._generateUUID4();
+                asset.type = "warning";
+                asset.title = "Attention!";
+                asset.content = [this._initializeAssetTextContentCopy()];
+                return asset;
+            },
+            _initializeAssetNotebene: function () {
+                var asset = {};
+                asset.id = this._generateUUID4();
+                asset.type = "notabene";
+                asset.title = "Protip";
+                asset.content = [this._initializeAssetTextContentCopy()];
+                return asset;
+            },
+            _initializeAssetListUnordered: function () {
+                var asset = {};
+                asset.id = this._generateUUID4();
+                asset.type = "list_unordered";
+                asset.points = [
+                    {
+                        "copy": "Point 1",
+                        "id": "1234"
+                    },
+                    {
+                        "copy": "Point 2",
+                        "id": "1234"
+                    },
+                    {
+                        "copy": "Point 3",
+                        "id": "1234"
+                    }];
+                asset.points[0].id = this._generateUUID4();
+                asset.points[1].id = this._generateUUID4();
+                asset.points[2].id = this._generateUUID4();
+                return asset;
+            },
+            _initializeAssetListOrdered: function () {
+                var asset = {};
+                asset.id = this._generateUUID4();
+                asset.type = "list_ordered";
+                asset.points = [
+                    {
+                        "copy": "Point 1",
+                        "id": "1234"
+                    },
+                    {
+                        "copy": "Point 2",
+                        "id": "1234"
+                    },
+                    {
+                        "copy": "Point 3",
+                        "id": "1234"
+                    }];
+                asset.points[0].id = this._generateUUID4();
+                asset.points[1].id = this._generateUUID4();
+                asset.points[2].id = this._generateUUID4();
+                return asset;
+            },
+            _initializeAssetImage: function () {
+                var asset = {};
+                asset.id = this._generateUUID4();
+                asset.type = "image";
+                asset.path = "https://firebasestorage.googleapis.com/v0/b/vulcancms.appspot.com/o/images%2Fbutterscotch.JPG?alt=media&token=79180dfe-5472-46cd-bbc1-484d45552537";
+                asset.caption = "Meow!";
+                return asset;
+            },
+            _initializeAssetCodeblock: function () {
+                var asset = {};
+                asset.id = this._generateUUID4();
+                asset.type = "codeblock";
+                asset.language = "bash";
+                asset.code = "echo \"Hello World!\"";
+                return asset;
+            },
+
+            /*********************************************************************************************************************/
+            /*                                                 EDITING LISTENERS                                                 */
+            /*********************************************************************************************************************/
+            _deleteAssetListener: function(e){
+              el = e.srcElement;
+              this._deleteAsset(el);
+            },
+            _updateCodeblockInLesson: function (e) {
+                var theID = e.detail.id;
+                var newText = e.detail.copy;
+                var lesson = this._secondLevelEditing("codeblock", theID, newText)
+                this.lessonedited = {};
+                this.lessonedited = lesson;
+            },
+            _updateNotaBeneInLesson: function (e) {
+                var theID = e.detail.id;
+                var newText = e.detail.copy;
+                var lesson = this._wnbtextEditing("notabene", theID, newText);
+                this.lessonedited = {};
+                this.lessonedited = lesson;
+            },
+            _updateWarningInLesson: function (e) {
+                var theID = e.detail.id;
+                var newText = e.detail.copy;
+                var lesson = this._wnbtextEditing("warning", theID, newText);
+                this.lessonedited = {};
+                this.lessonedited = lesson;
+            },
+            _updateListUnorderedInLesson: function (e) {
+                var theID = e.detail.id;
+                var newText = e.detail.copy;
+                var lesson = this._listEditing("list_unordered", theID, newText);
+                this.lessonedited = lesson;
+            },
+            _updateListOrderedInLesson: function (e) {
+                var theID = e.detail.id;
+                var newText = e.detail.copy;
+                var lesson = this._listEditing("list_ordered", theID, newText);
+                this.lessonedited = lesson;
+            },
+            _updateImageInLesson: function (e) {
+                var theID = e.detail.id;
+                var newText = e.detail.copy;
+                var lesson = this._imageEditing("image", theID, newText)
+                this.lessonedited = {};
+                this.lessonedited = lesson;
+            },
+            _updateTextInLesson: function (e) {
+                var theID = e.detail.id;
+                var newText = e.detail.copy;
+                var lesson = this._wnbtextEditing("text", theID, newText);
+                this.lessonedited = {};
+                this.lessonedited = lesson;
+            },
+
+            /*********************************************************************************************************************/
+            /*                                                 TEMPLATE EDITORS                                                  */
+            /*********************************************************************************************************************/
+
+            _updateSectionNameInLesson: function (e) {
+                var theID = e.detail.id;
+                var newName = e.detail.name;
+                var i;
+                var j;
+                for (i = 0; i < this.lessonedited.contentparts.length; i++) {
+                    var steps = this.lessonedited.contentparts[i];
+                    for (j = 0; j < steps.sections.length; j++) {
+                        var sections = steps.sections[j];
+                        if (sections.id == theID) {
+                            sections.name = newName;
+                        }
+                    }
+                }
+            },
+            _secondLevelEditing: function (assetType, theID, newText) {
+                var i;
+                var j;
+                var k;
+                var lesson = this.lessonedited;
+                for (i = 0; i < lesson.contentparts.length; i++) {
+                    var steps = lesson.contentparts[i];
+                    for (j = 0; j < steps.sections.length; j++) {
+                        var sections = steps.sections[j];
+                        for (k = 0; k < sections.assets.length; k++) {
+                            var assets = sections.assets[k];
+                            if (assets.type == assetType) {
+                                if (assets.id == theID) {
+                                    assets.code = newText;
+                                }
+                            }
+                        }
+                    }
+                }
+                return lesson;
+            },
+            _imageEditing: function (assetType, theID, newText) {
+                var i;
+                var j;
+                var k;
+                var lesson = this.lessonedited;
+                for (i = 0; i < lesson.contentparts.length; i++) {
+                    var steps = lesson.contentparts[i];
+                    for (j = 0; j < steps.sections.length; j++) {
+                        var sections = steps.sections[j];
+                        for (k = 0; k < sections.assets.length; k++) {
+                            var assets = sections.assets[k];
+                            if (assets.type == assetType) {
+                                // if (assets.id == theID) {?
+                                    var contentID = theID.substring(0, theID.length - ("path".length));
+                                    var contentType = theID.substring(theID.length - ("path".length));
+                                        if (assets.id == contentID) {
+                                        if (contentType == "path") {
+                                            assets.path = newText;
+                                        } else if (contentType == "capt") {
+                                            assets.caption = newText;
+                                        }
+                                    }
+                                // }?
+                            }
+                        }
+                    }
+                }
+                return lesson;
+            },
+            _listEditing: function (assetType, theID, newText) {
+                var i;
+                var j;
+                var k;
+                var l;
+                var lesson = this.lessonedited;
+                for (i = 0; i < lesson.contentparts.length; i++) {
+                    var steps = lesson.contentparts[i];
+                    for (j = 0; j < steps.sections.length; j++) {
+                        var sections = steps.sections[j];
+                        for (k = 0; k < sections.assets.length; k++) {
+                            var assets = sections.assets[k];
+                            if (assets.type == assetType) {
+                                for (l = 0; l < assets.points.length; l++) {
+                                    var point = assets.points[l];
+                                    if (point.id == theID) {
+                                        point.copy = newText;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return lesson;
+            },
+            _wnbtextEditing: function (assetType, theID, newText) {
+                var i;
+                var j;
+                var k;
+                var l;
+                var lesson = this.lessonedited;
+                for (i = 0; i < lesson.contentparts.length; i++) {
+                    var steps = lesson.contentparts[i];
+                    for (j = 0; j < steps.sections.length; j++) {
+                        var sections = steps.sections[j];
+                        for (k = 0; k < sections.assets.length; k++) {
+                            var assets = sections.assets[k];
+                            if (assets.type == assetType) {
+                                if (assets.id == theID) {
+                                    assets.title = newText;
+                                } else {
+                                    for (l = 0; l < assets.content.length; l++) {
+                                        var content = assets.content[l];
+                                        if (content.type == "copy") {
+                                            if (content.id == theID) {
+                                                content.copy = newText;
+                                            }
+                                        } else if (content.type == "link") {
+                                            var contentID = theID.substring(0, theID.length - ("text".length));
+                                            var contentType = theID.substring(theID.length - ("text".length));
+                                            if (contentID == content.id) {
+                                                if (contentType == "href") {
+                                                    content.link.url = newText;
+                                                } else if (contentType == "text") {
+                                                    content.link.copy = newText;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return lesson;
+            },
+
+            /*********************************************************************************************************************/
+            /*                                           ID GENERATOR AND GENERAL CRUD                                           */
+            /*********************************************************************************************************************/
+
+            _generateUUID4: function () {
+                var uuid = '', ii;
+                for (ii = 0; ii < 32; ii += 1) {
+                    switch (ii) {
+                        case 8:
+                        case 20:
+                            uuid += '-';
+                            uuid += (Math.random() * 16 | 0).toString(16);
+                            break;
+                        case 12:
+                            uuid += '-';
+                            uuid += '4';
+                            break;
+                        case 16:
+                            uuid += '-';
+                            uuid += (Math.random() * 4 | 8).toString(16);
+                            break;
+                        default:
+                            uuid += (Math.random() * 16 | 0).toString(16);
+                    }
+                }
+                return uuid;
+            },
+
+            _pageHovered: function (e) {
+            },
+            _reRender2: function () {
+                this.$.editorStepRepeater.render();
+            },
+            _saveChanges: function () {
+              var key = null;
+              if (this.lesson.$key){
+                key = this.lesson.$key;
+              }
+              if (this.lesson.key){
+                key = this.lesson.key;
+              }
+                //update "last updated" time
+                var d = new Date();
+                var dateString = this._getDateString(d);
+                this.lesson.updated = dateString;
+                this.lesson.updatedISO = d.toISOString();
+                this.fire('savechanges', {'lesson': this.lessonedited, 'key': key});
+
+            },
+            _getDateString: function(d){
+            var month;
+            var date = d.getDate();
+            var year = d.getFullYear();
+            switch (d.getMonth()){
+              case 0:
+              month = "January";
+              break
+              case 1:
+              month = "February";
+              break
+              case 2:
+              month = "March";
+              break
+              case 3:
+              month = "April";
+              break
+              case 4:
+              month = "May";
+              break
+              case 5:
+              month = "June";
+              break
+              case 6:
+              month = "July";
+              break
+              case 7:
+              month = "August";
+              break
+              case 8:
+              month = "September";
+              break
+              case 9:
+              month = "October";
+              break
+              case 10:
+              month = "November";
+              break
+              case 11:
+              month = "December";
+              break
+            }
+            var dateString = month + " " + date + ", " + year;
+            return dateString;
+            },
+            _lessonChanged: function () {
+              // console.log('lesson edited activated');
+            },
+            _exportJSON: function () {
+                var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.lesson, undefined, 4));
+                var dlAnchorElem = document.getElementById('downloadAnchorElem');
+                dlAnchorElem.setAttribute("href", dataStr);
+                dlAnchorElem.setAttribute("download", this.lesson.category + "_" +   this.lesson.href + ".json");
+                dlAnchorElem.click();
+            }
+        });
+    </script>
+</dom-module>

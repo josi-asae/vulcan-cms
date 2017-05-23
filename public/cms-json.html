@@ -1,0 +1,419 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../css/shared-styles.html">
+<dom-module id="cms-json">
+    <template>
+        <style include="shared-styles">
+            #uploader {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 50%;
+                margin-bottom: 10%;
+            }
+
+            img {
+                height: 400px;
+            }
+
+            #newdiv {
+                @apply(--layout-vertical);
+                @apply(--layout-center);
+            }
+        </style>
+
+        <div id="newdiv">
+            <h1>JSON</h1>
+            <textarea id="myTextArea" cols=200 rows=30>{{lessonText}}
+        </textarea>
+            <paper-button on-tap="_activatePreview">Preview</paper-button>
+        </div>
+
+    </template>
+    <script>
+        Polymer({
+            is: 'cms-json',
+
+
+            properties: {
+                lesson: {
+                    type: Object,
+                    notify: true
+                },
+                lessonText: {
+                    type: String,
+                    value: JSON.stringify({
+                        "id": "9d709426-7273-4d0a-b201-61ede1ad3758",
+                        "name": "Template Lesson",
+                        "href": "template-lesson",
+                        "duration": 20,
+                        "category": "Category",
+                        "image_path": "https://firebasestorage.googleapis.com/v0/b/vulcancms.appspot.com/o/images%2Fbutterscotch.JPG?alt=media&token=79180dfe-5472-46cd-bbc1-484d45552537",
+                        "contentparts": [
+                            {
+                                "id": "7f9c5605-c88e-4867-9400-af1d3f64509b",
+                                "name": "Overview",
+                                "time_remaining": "20",
+                                "downloads": [
+                                    {
+                                        "text": "A_Sample.txt",
+                                        "url": "path/to/sample"
+                                    },
+                                    {
+                                        "text": "A_Sample.txt",
+                                        "url": "path/to/sample"
+                                    }
+                                ],
+                                "sections": [
+                                    {
+                                        "id": "9c1a522f-0461-454a-a748-cdc8a73178b5",
+                                        "name": "",
+                                        "assets": [
+                                            {
+                                                "id": "659a6245-8264-46e5-bdc5-f12b61bb2bb0",
+                                                "type": "image",
+                                                "path": "https://firebasestorage.googleapis.com/v0/b/vulcancms.appspot.com/o/images%2Fbutterscotch.JPG?alt=media&token=79180dfe-5472-46cd-bbc1-484d45552537",
+                                                "caption": "This is an image"
+                                            },
+                                            {
+                                                "type": "text",
+                                                "content": [
+                                                    {
+                                                        "type": "copy",
+                                                        "copy": "This is a summary of the lesson purpose and/or objectives.",
+                                                        "id": "ab689be1-7da6-4086-9566-be3d19b72afa"
+                                                    }
+                                                ],
+                                                "id": "62a93c8c-9c08-48e4-9a78-81cea2e332b6"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "id": "5eb4c5c7-1b01-45be-93fb-bacf0af44281",
+                                        "name": "Lorem Ipsum",
+                                        "assets": [
+                                            {
+                                                "type": "list_unordered",
+                                                "points": [
+                                                    {
+                                                        "copy": "Learning 1",
+                                                        "id": "a390b846-8a45-46ec-80ae-88a800ab259b"
+                                                    },
+                                                    {
+                                                        "copy": "Learning 2",
+                                                        "id": "756547c0-0de7-4f7b-a77e-d794d4db9662"
+                                                    },
+                                                    {
+                                                        "copy": "Learning 3",
+                                                        "id": "04acd4c2-d1f8-40ee-aa5b-0a135580f40c"
+                                                    },
+                                                    {
+                                                        "copy": "Learning 4",
+                                                        "id": "2fc29ab9-ea15-44bd-82c9-4a1f47f06cef"
+                                                    },
+                                                    {
+                                                        "copy": "Learning 5",
+                                                        "id": "da3c1740-ee87-4601-81fc-cf1526fe335c"
+                                                    }
+                                                ],
+                                                "id": "a48c0d27-fdc3-4cbc-b8b8-0bfc2abd227d"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "id": "6e3510d3-f7aa-460c-8541-3e3303accbc0",
+                                        "name": "Lorem Ipsum",
+                                        "assets": [
+                                            {
+                                                "type": "list_unordered",
+                                                "points": [
+                                                    {
+                                                        "copy": "Thing you need 1",
+                                                        "id": "fe47fc1f-bb9c-43c6-a203-cfdbba554c35"
+                                                    },
+                                                    {
+                                                        "copy": "Thing you need 2",
+                                                        "id": "4474d5b7-69b6-4de2-bc1d-eab0c584e3d8"
+                                                    },
+                                                    {
+                                                        "copy": "Thing you need 3",
+                                                        "id": "34d9e336-228b-4358-b117-e59a77e94122"
+                                                    }
+                                                ],
+                                                "id": "2e270619-c1d3-4eca-a718-237397784fc3"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "id": "4587298a-0a75-4563-b476-7514ed311f90",
+                                        "name": "Workflow Summary",
+                                        "assets": [
+                                            {
+                                                "type": "list_unordered",
+                                                "points": [
+                                                    {
+                                                        "copy": "Explain what you will do specifically here",
+                                                        "id": "0356f221-faa3-4942-ab65-691e442f638d"
+                                                    },
+                                                    {
+                                                        "copy": "You can use this tutorial in a number of ways. You can either copy and paste each section of code into the template files as directed whilst you go through the tutorial or you can download the completed files to run immediately and go through the tutorial at a later stage.",
+                                                        "id": "f7fbb884-49d9-499c-ba5d-64dc81366e98"
+                                                    }
+                                                ],
+                                                "id": "d1ae5ef4-0b07-44e4-a09c-0cd3dea77738"
+                                            }
+                                        ]
+                                    }
+                                ],
+                                "duration": "20"
+                            },
+                            {
+                                "id": "de4e5e99-0721-4197-8bfa-2fa07735959c",
+                                "name": "New Page of Amazing Content!",
+                                "time_remaining": "",
+                                "downloads": [],
+                                "sections": [
+                                    {
+                                        "id": "d38acf42-0267-4881-a5cd-892a7457c13b",
+                                        "name": "New Section",
+                                        "assets": [
+                                            {
+                                                "id": "67cd2b10-5b65-4b59-9827-b4eb12c4756c",
+                                                "type": "text",
+                                                "content": [
+                                                    {
+                                                        "id": "95306f9c-8bb1-4a0f-9574-bc7c326637a7",
+                                                        "type": "copy",
+                                                        "copy": "Id aliqua ullamco ullamco commodo ipsum Lorem. Amet ut eu voluptate cillum occaecat Lorem et cillum excepteur ullamco mollit enim. Ea nostrud dolore culpa nulla nostrud ex voluptate anim laborum esse commodo sunt. Velit laboris pariatur labore dolore occaecat enim fugiat qui. Sit in eu ex aute minim deserunt qui consectetur laboris nostrud ad quis qui id."
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "id": "88d1727d-15de-41bb-9b30-729b08de1100",
+                                                "type": "notabene",
+                                                "title": "Protip",
+                                                "content": [
+                                                    {
+                                                        "id": "0561a264-cc67-4ae4-9d9e-c9404b55a963",
+                                                        "type": "copy",
+                                                        "copy": "Id aliqua ullamco ullamco commodo ipsum Lorem. Amet ut eu voluptate cillum occaecat Lorem et cillum excepteur ullamco mollit enim. Ea nostrud dolore culpa nulla nostrud ex voluptate anim laborum esse commodo sunt. Velit laboris pariatur labore dolore occaecat enim fugiat qui. Sit in eu ex aute minim deserunt qui consectetur laboris nostrud ad quis qui id."
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "id": "83081178-43a3-4ad0-8e98-0ded48415f58",
+                                                "type": "warning",
+                                                "title": "Attention!",
+                                                "content": [
+                                                    {
+                                                        "id": "34ad7a27-e687-4a0f-9962-4bb15bb9b85a",
+                                                        "type": "copy",
+                                                        "copy": "Id aliqua ullamco ullamco commodo ipsum Lorem. Amet ut eu voluptate cillum occaecat Lorem et cillum excepteur ullamco mollit enim. Ea nostrud dolore culpa nulla nostrud ex voluptate anim laborum esse commodo sunt. Velit laboris pariatur labore dolore occaecat enim fugiat qui. Sit in eu ex aute minim deserunt qui consectetur laboris nostrud ad quis qui id."
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "id": "50485455-797f-4a19-9022-153cf41d1131",
+                                                "type": "list_ordered",
+                                                "points": [
+                                                    {
+                                                        "copy": "Point 1",
+                                                        "id": "6c8520b2-6b7b-4926-9ce6-a69db936a523"
+                                                    },
+                                                    {
+                                                        "copy": "Point 2",
+                                                        "id": "8ee4569e-ef83-49ec-b5d1-93aea4b934f4"
+                                                    },
+                                                    {
+                                                        "copy": "Point 3",
+                                                        "id": "69a6cca7-fb7b-4c3f-bf5f-1ae937f04a8d"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ],
+                                "duration": "15"
+                            },
+                            {
+                                "id": "c1615afb-d797-4d0c-9bdb-1ebadb6408bb",
+                                "name": "Another New Page of Even Better Content!",
+                                "time_remaining": "",
+                                "downloads": [],
+                                "sections": [
+                                    {
+                                        "id": "bf9c5490-8a07-49a5-9217-6b972c397b1d",
+                                        "name": "New Section",
+                                        "assets": [
+                                            {
+                                                "id": "2ca77675-9ad6-4c34-8035-71a73e7420cc",
+                                                "type": "text",
+                                                "content": [
+                                                    {
+                                                        "id": "5b383828-dfe4-4889-b786-975178ae9827",
+                                                        "type": "copy",
+                                                        "copy": "Id aliqua ullamco ullamco commodo ipsum Lorem. Amet ut eu voluptate cillum occaecat Lorem et cillum excepteur ullamco mollit enim. Ea nostrud dolore culpa nulla nostrud ex voluptate anim laborum esse commodo sunt. Velit laboris pariatur labore dolore occaecat enim fugiat qui. Sit in eu ex aute minim deserunt qui consectetur laboris nostrud ad quis qui id."
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "id": "22de71b2-5b8d-4c65-8e8d-eb9d01ca7dc8",
+                                        "name": "New Section",
+                                        "assets": [
+                                            {
+                                                "id": "042be83d-1098-473c-be5a-ee8f16de2ee5",
+                                                "type": "text",
+                                                "content": [
+                                                    {
+                                                        "id": "14d86577-fcaf-4d62-ae5e-ceb42efc3446",
+                                                        "type": "copy",
+                                                        "copy": "Id aliqua ullamco ullamco commodo ipsum Lorem. Amet ut eu voluptate cillum occaecat Lorem et cillum excepteur ullamco mollit enim. Ea nostrud dolore culpa nulla nostrud ex voluptate anim laborum esse commodo sunt. Velit laboris pariatur labore dolore occaecat enim fugiat qui. Sit in eu ex aute minim deserunt qui consectetur laboris nostrud ad quis qui id."
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "id": "6af2a4ee-55e3-4510-abd9-a99e593ad4ae",
+                                                "type": "codeblock",
+                                                "language": "bash",
+                                                "code": "echo \"Hello World!\""
+                                            }
+                                        ]
+                                    }
+                                ],
+                                "duration": "10"
+                            }
+                        ],
+                        "updated": "April 6, 2017",
+                        "updatedISO": "2017-04-06T00:32:04.016Z"
+                    }, undefined, 4)
+                }
+            },
+            _activatePreview: function () {
+                // send data
+                var ugly = document.getElementById('myTextArea').value;
+                var obj = JSON.parse(ugly);
+                obj = this._recursiveIDSwap(obj);
+                this.lesson = obj;
+                this.fire("gotopreview", {"lesson": this.lesson});
+                var pretty = JSON.stringify(obj, undefined, 4);
+                document.getElementById('myTextArea').value = pretty;
+                // document.getElementById('myTextArea').value = "";
+            },
+            requestExportLesson: function () {
+                this.fire("exportlesson");
+            },
+            exportLesson: function () {
+                var pretty = JSON.stringify(this.lesson, undefined, 4);
+                document.getElementById('myTextArea').value = pretty;
+            },
+            ready: function () {
+                var jsonText = JSON.parse(this.lessonText);
+                // jsonText = this._recursiveIDSwap(jsonText);
+                jsonText.id = this._generateUUID4();
+                jsonText.name = "New Lesson Name";
+                jsonText.contentparts[0].id = this._generateUUID4();
+                this.lessonText = JSON.stringify(jsonText, undefined, 4);
+            },
+            _recursiveIDSwap: function (json) {
+              // if keys, delete them
+              if (json.key){
+                delete json.key;
+              }
+              if (json.$key){
+                delete json.$key;
+              }
+              var json2 = {};
+              if (json.id){
+
+                json.id = this._generateUUID4();
+              }
+                for (var key in json) {
+                  // console.log(key);
+                  // console.log(json);
+                    var value = json[key];
+                    // console.log(value);
+                    if (value && value.id) {
+                        // console.log("update ids");
+                        value.id = this._generateUUID4();
+                    }
+                    // if (typeof(value) == "object" && Array.isArray(value) != true){
+                    if (typeof(value) == "object") {
+                        // console.log(value);
+                        // console.log(Array.isArray(value));
+                        // if (value.id){
+                        console.log("ID would be updated");
+                        if (!Array.isArray(value)){
+                        value.id = this._generateUUID4();
+                        }
+                        json2 = this._recursiveIDSwap(value);
+                        console.log(json2);
+                        // return json2;
+                    }
+                }
+                return json;
+                // var i, currentChild;
+                //     currentNode.id = this._generateUUID4();
+                //
+                //     // Use a for loop instead of forEach to avoid nested functions
+                //     // Otherwise "return" will not work properly
+                //     for (i = 0; i < currentNode.children.length; i += 1) {
+                //         currentChild = currentNode.children[i];
+                //
+                //         // Search in the current child
+                //         result = findNode(currentChild);
+                //
+                //     }
+
+
+            },
+            _generateUUID4: function () {
+                var uuid = '', ii;
+                for (ii = 0; ii < 32; ii += 1) {
+                    switch (ii) {
+                        case 8:
+                        case 20:
+                            uuid += '-';
+                            uuid += (Math.random() * 16 | 0).toString(16);
+                            break;
+                        case 12:
+                            uuid += '-';
+                            uuid += '4';
+                            break;
+                        case 16:
+                            uuid += '-';
+                            uuid += (Math.random() * 4 | 8).toString(16);
+                            break;
+                        default:
+                            uuid += (Math.random() * 16 | 0).toString(16);
+                    }
+                }
+                return uuid;
+            }
+        });
+
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/3.7.4/firebase.js"></script>
+    <script>
+        // Initialize Firebase
+        var config = {
+            apiKey: "AIzaSyAfLzOBKkxUPWJdv7GO4AC1WTzPh9u51aY",
+            authDomain: "vulcancms.firebaseapp.com",
+            databaseURL: "https://vulcancms.firebaseio.com",
+            storageBucket: "vulcancms.appspot.com",
+            messagingSenderId: "159354999906"
+        };
+        firebase.initializeApp(config);
+    </script>
+</dom-module>

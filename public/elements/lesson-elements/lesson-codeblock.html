@@ -1,0 +1,90 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-drawer-panel/paper-drawer-panel.html">
+<link rel="import" href="../../elements/jal-prism-element/prism-highlighter.html">
+<link rel="import" href="../../elements/jal-prism-element/prism-theme-default.html">
+<link rel="import" href="../../css/shared-styles.html">
+<dom-module id="lesson-codeblock">
+  <template>
+    <style include="shared-styles prism-theme-default">
+
+      pre {
+        background: var(--codeblock-background-color);
+        color: var(--codeblock-text-color);
+        overflow-x: scroll;
+        padding: 10px;
+        border-radius: .5em;
+      }
+
+    </style>
+    <prism-highlighter></prism-highlighter>
+    <pre id="codeoutput"></pre>
+  </template>
+  <script>
+    Polymer({
+      is: 'lesson-codeblock',
+
+      created: function () {
+        //console.log(this.localName + '#' + this.id + ' was created');
+      },
+
+      ready: function () {
+        //console.log(this.localName + '#' + this.id + ' has local DOM initialized');
+      },
+
+      attached: function () {
+        //console.log(this.localName + '#' + this.id + ' was attached');
+        this._render();
+      },
+      _render: function () {
+        this.async(function () {
+          this.$.codeoutput.innerHTML = this.highlight(this.code, this.lang);
+        })
+      },
+      highlight: function (code, lang) {
+        return this.fire('syntax-highlight', {code: code, lang: lang}).detail.code;
+      },
+
+      detached: function () {
+        //console.log(this.localName + '#' + this.id + ' was detached');
+      },
+
+      attributeChanged: function (name, type) {
+        //console.log(this.localName + '#' + this.id + ' attribute ' + name +
+        // ' was changed to ' + this.getAttribute(name));
+      },
+      properties: {
+        lang: {
+          type: String,
+          value: ""
+        },
+        code: {
+          type: String,
+          observer: '_render'
+        }
+      },
+      handleOutboundLinkClicks: function (e) {
+        ga('send', 'event', {
+          eventCategory: 'Outbound Link',
+          eventAction: 'click',
+          eventLabel: event.target.href,
+          transport: 'beacon'
+        });
+      },
+      toggle: function (e) {
+        collapsegroup = e.target.attributes['targetgroup'].value;
+        //console.log(collapsegroup);
+        this.$[collapsegroup].toggle();
+      }
+    });
+  </script>
+
+</dom-module>

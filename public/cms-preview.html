@@ -1,0 +1,76 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/iron-icons/editor-icons.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../css/shared-styles.html">
+<link rel="import" href="lesson-step.html">
+<dom-module id="cms-preview">
+    <template>
+        <style include="shared-styles">
+            :host {
+                @apply(--layout-vertical);
+                @apply(--layout-center);
+                overflow-x: auto;
+                --paper-fab-background: var(--paper-teal-500);
+            }
+
+            .step {
+                margin: 20px;
+                min-height: 400px;
+                /*width: 800px;*/
+                background-color: white;
+                /*box-shadow: 2px 2px 5px #888;*/
+            }
+
+            paper-fab#editfab {
+                position: fixed;
+                bottom: 1em;
+                right: 1em;
+            }
+        </style>
+        <h1>Preview</h1>
+        <paper-fab id="editfab" on-tap="_activatePreview" icon="editor:mode-edit"></paper-fab>
+        <template id="stepRepeater" is="dom-repeat" items={{lesson.contentparts}} as="page">
+            <div class="step">
+                <lesson-step id="currentstep" content="{{page}}"></lesson-step>
+            </div>
+        </template>
+    </template>
+    <script>
+        Polymer({
+            is: 'cms-preview',
+            properties: {
+                lesson: {
+                    type: Object,
+                    observer: '_lessonChanged',
+                    notify: true
+                }
+            },
+            _reRender: function () {
+                this.$.stepRepeater.render();
+            },
+            _lessonChanged: function () {
+            },
+            _updateSteps: function () {
+                this.async(function () {
+                    this.$$("#currentstep").updateStep();
+                })
+            },
+            _activatePreview: function () {
+                // send data
+                this.fire('gotoeditor')
+            },
+        });
+    </script>
+</dom-module>

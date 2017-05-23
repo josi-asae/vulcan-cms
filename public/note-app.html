@@ -1,0 +1,311 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="elements/note-app-elements/na-elements.html">
+<link rel="import" href="bower_components/app-storage/app-indexeddb-mirror/app-indexeddb-mirror.html">
+<link rel="import" href="bower_components/polymerfire/polymerfire.html">
+<link rel="import" href="bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="bower_components/app-route/app-route.html">
+<link rel="import" href="bower_components/app-route/app-location.html">
+<link rel="import" href="bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="bower_components/neon-animation/neon-animation.html">
+<link rel="import" href="bower_components/neon-animation/neon-animated-pages.html">
+<link rel="import" href="css/shared-styles.html">
+<link rel="import" href="cms-json.html">
+<link rel="import" href="cms-preview.html">
+<link rel="import" href="cms-editor.html">
+<link rel="import" href="cms-library.html">
+
+<dom-module id="note-app">
+  <template>
+    <style include="note-app-shared-styles shared-styles">
+
+    na-toolbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 500;
+    }
+    paper-tabs {
+      position: fixed;
+      top: 50px;
+      left: 0;
+      right: 0;
+      z-index: 500;
+      background-color: var(--jal-grey-light);
+      --paper-tabs-selection-bar-color: var(--jal-green);
+    }
+
+    paper-tab {
+      --paper-tab-ink: var(--jal-green);
+    }
+    neon-animated-pages {
+      margin-top: 100px;
+    }
+
+    div.selectedsection {
+      background-color: red;
+    }
+
+
+
+
+    </style>
+    <na-login
+      on-sign-in="signIn"
+      signed-in="[[signedIn]]"
+      disabled="[[!online]]">
+    </na-login>
+    <firebase-auth
+      id="auth"
+      app-name="notes"
+      provider="google"
+      signed-in="{{signedIn}}"
+      user="{{user}}">
+    </firebase-auth>
+    <na-editor
+    id="editor"
+    note="{{editableNote}}"
+    on-close="commitChange">
+</na-editor>
+<firebase-document
+    id="document"
+    app-name="notes"
+    path="[[documentSavePath]]"
+    data="{{savedlesson}}">
+</firebase-document>
+<firebase-query
+    id="query"
+    app-name="notes"
+    path="/notes/[[user.uid]]"
+    data="{{notes}}">
+</firebase-query>
+<app-indexeddb-mirror
+    session="[[user.uid]]"
+    key="notes"
+    data="{{notes}}"
+    persisted-data="{{persistedNotes}}">
+</app-indexeddb-mirror>
+
+    <na-toolbar
+      signed-in="[[signedIn]]"
+      on-sign-out="signOut">
+    </na-toolbar>
+    <app-route route="{{route}}" pattern="/tabs/:tabName" data="{{data}}">
+    </app-route>
+
+    <paper-tabs  id="tabnav" selected='{{data.tabName}}' attr-for-selected='key'>
+      <paper-tab key='json'>JSON</paper-tab>
+      <paper-tab key='preview'>Preview</paper-tab>
+      <paper-tab key='editor'>Editor</paper-tab>
+      <paper-tab key='library'>Library</paper-tab>
+    </paper-tabs>
+
+    <neon-animated-pages id="animatedpages"
+                        selected='{{data.tabName}}'
+                         attr-for-selected='key'
+                         entry-animation='slide-from-right-animation'
+                         exit-animation='slide-left-animation'>
+
+
+      <neon-animatable key='json'>
+        <cms-json id="cmsjson" name="json" on-gotopreview="_gotoPreview" lesson="{{lesson}}"></cms-json>
+      </neon-animatable>
+      <neon-animatable key='preview'>
+        <cms-preview id="cmspreview" name="preview" on-gotoeditor="_gotoEditor" lesson="{{lesson}}"></cms-preview>
+      </neon-animatable>
+      <neon-animatable key='editor'>
+        <cms-editor id="cmseditor" name="editor" lesson="{{lesson}}" lessonedited="[[lesson]]"></cms-editor>
+      </neon-animatable>
+      <neon-animatable key='library'>
+        <cms-library id="cmslibrary" name="library" on-loadlesson="_loadLesson" note-id={{noteId}} persisted-notes="[[persistedNotes]]"></cms-library>
+      </neon-animatable>
+    </neon-animated-pages>
+
+
+
+
+
+
+
+  </template>
+  <script>
+    Polymer({
+      is: 'note-app',
+
+      behaviors: [Polymer.NoteAppBehavior],
+
+      observers: [
+        '_routePageChanged(routeData.page)'
+      ],
+      properties: {
+
+          lesson: {
+            type: Object,
+            observer: '_lessonChanged',
+            notify: true
+          },
+
+        page: {
+          type: String,
+          reflectToAttribute: true,
+          observer: '_pageChanged'
+        },
+        userId: {
+          type: String
+        },
+        noteId: {
+            type: String
+        },
+        documentSavePath: {
+          type: String
+        }
+      },
+      listeners: {
+        'savechanges': '_saveChanges'
+      },
+      ready: function(){
+        this.$.tabnav.selected = "json";
+      },
+      _lessonChanged: function(){
+
+        this.$.cmspreview._reRender(); //for some reason, not having this re-render here prevents the preview from reloading.
+
+      },
+      _saveChanges: function(e){
+        this.lesson = {};
+        var newKey = null;
+        if (!e.detail.key){
+          var lessonId = e.detail.lesson.id;
+          this.documentSavePath2 = '/notes/' + this.user.uid + '/';
+          this.savedlesson = e.detail.lesson;
+          this.lesson = e.detail.lesson;
+          this.$.document.save(this.documentSavePath2, lessonId).then(() =>{
+          this.$.document.reset();
+          var id= this.$.document.data;
+    });
+        } else {
+          newKey = e.detail.key;
+          this.documentSavePath = '/notes/' + this.user.uid + '/' + newKey;
+          this.documentSavePath2 = '/notes/' + this.user.uid + '/';
+          this.lesson = e.detail.lesson;
+          this.lesson.key = e.detail.key;
+          this.lesson.$key = e.detail.key;
+          var lessontosave = this.lesson;
+          delete lessontosave['$key'];
+          this.savedlesson = lessontosave;
+          this.$.document.save(this.documentSavePath2, e.detail.key);
+          this.$.document.reset();
+        }
+        this.$.cmspreview._reRender();
+
+
+      },
+      _gotoPreview: function(e){
+        this.lesson = e.detail.lesson;
+          this.$.tabnav.selected = "preview";
+      },
+      _gotoEditor: function(){
+        this.$.tabnav.selected = "editor";
+      },
+      _loadLesson: function(e){
+        this.lesson = {};
+        this.documentSavePath = null;
+        this.lesson = e.detail;
+        this.$.tabnav.selected = "preview";
+      },
+      _routePageChanged: function(page) {
+        if (this.page === 'list') {
+          this._listScrollTop = window.pageYOffset;
+        }
+        this.page = page || 'home';
+        // Close the drawer - in case the *route* change came from a link in the drawer.
+        this.drawerOpened = false;
+      },
+      _pageChanged: function(page, oldPage) {
+        if (page != null) {
+          // home route is eagerly loaded
+          if (page == 'home') {
+            this._pageLoaded(Boolean(oldPage));
+          // other routes are lazy loaded
+          } else {
+            // When a load failed, it triggered a 404 which means we need to
+            // eagerly load the 404 page definition
+            var cb = this._pageLoaded.bind(this, Boolean(oldPage));
+            this.importHref(
+              this.resolveUrl('src/jal-' + page + '.html'),
+              cb, cb, true);
+          }
+        }
+      },
+
+      _pageLoaded: function(shouldResetLayout) {
+        // this._ensureLazyLoaded();
+        // if (shouldResetLayout) {
+        //   // The size of the header depends on the page (e.g. on some pages the tabs
+        //   // do not appear), so reset the header's layout only when switching pages.
+        //   this.async(function() {
+        //     this.$.header.resetLayout();
+        //   }, 1);
+        // }
+      },
+
+      _ensureLazyLoaded: function() {
+        // load lazy resources after render and set `loadComplete` when done.
+        // if (!this.loadComplete) {
+        //   Polymer.RenderStatus.afterNextRender(this, function() {
+        //     this.importHref(this.resolveUrl('lazy-resources.html'), function() {
+        //       // Register service worker if supported.
+        //       if ('serviceWorker' in navigator) {
+        //         navigator.serviceWorker.register('/service-worker.js');
+        //       }
+        //       this._notifyNetworkStatus();
+        //       this.loadComplete = true;
+        //     });
+        //   });
+        // }
+      },
+      checkTap: function(e) {
+        if (e.detail.sourceEvent.target.id == "lessonstepheader"){
+          this.$.lessonwalkthrough.editStep();
+        } else if (e.detail.sourceEvent.target.parentElement.id == "textelement") {
+          var para = e.detail.sourceEvent.target;
+          this.$.lessonwalkthrough.editSubsection(para);
+        } else {
+          this.$.lessonwalkthrough.saveChanges();
+        }
+        // if step title is tapped, set editStep to true
+        // if subsection title is selected, set editSubsection to true
+        // if asset is selected, set editAsset to true
+        },
+
+      signIn: function() {
+        this.$.auth.signInWithPopup();
+      },
+
+      get notesPath() {
+        return '/notes/' + this.user.uid;
+      },
+
+      toEditableId: function(noteId) {
+        return this.notesPath + '/' + noteId;
+      },
+
+      get isEditable() {
+        return this.online;
+      },
+      convertLessonToJSON: function(){
+        this.$.testElement.lesson = this.$.lessonwalkthrough.lesson
+        this.$.testElement.exportLesson();
+      }
+    });
+  </script>
+</dom-module>

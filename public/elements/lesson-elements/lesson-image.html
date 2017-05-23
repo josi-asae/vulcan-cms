@@ -1,0 +1,90 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-drawer-panel/paper-drawer-panel.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<!-- <link rel="import" href="elements/jal-prism/jal-prism.html"> -->
+<link rel="import" href="../../css/shared-styles.html">
+<dom-module id="lesson-image">
+  <template>
+    <style include="shared-styles">
+
+
+      .lessonImage {
+        width: 90%;
+        height: 90%;
+      }
+
+      .image {
+        @apply(--layout-vertical);
+        @apply(--layout-center);
+      }
+
+      img.lessonImage {
+        box-shadow: 2px 2px 5px #888;
+      }
+    </style>
+    <div class="image">
+      <!-- <img src="london.jpg"> -->
+      <img src="{{thepath}}" class="lessonImage">
+      <p>{{thecaption}}</p>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'lesson-image',
+
+      created: function () {
+        //console.log(this.localName + '#' + this.id + ' was created');
+      },
+
+      ready: function () {
+        // console.log(this.localName + '#' + this.id + ' has local DOM initialized');
+      },
+
+      attached: function () {
+        //console.log(this.localName + '#' + this.id + ' was attached');
+      },
+
+      detached: function () {
+        //console.log(this.localName + '#' + this.id + ' was detached');
+      },
+
+      attributeChanged: function (name, type) {
+        //console.log(this.localName + '#' + this.id + ' attribute ' + name +
+        // ' was changed to ' + this.getAttribute(name));
+      },
+      properties: {
+        thepath: {
+          type: String,
+          value: ""
+        },
+        thecaption: {
+          type: String,
+          value: ""
+        }
+      },
+      handleOutboundLinkClicks: function (e) {
+        ga('send', 'event', {
+          eventCategory: 'Outbound Link',
+          eventAction: 'click',
+          eventLabel: event.target.href,
+          transport: 'beacon'
+        });
+      },
+      toggle: function (e) {
+        collapsegroup = e.target.attributes['targetgroup'].value;
+        //console.log(collapsegroup);
+        this.$[collapsegroup].toggle();
+      }
+    });
+  </script>
+
+</dom-module>
